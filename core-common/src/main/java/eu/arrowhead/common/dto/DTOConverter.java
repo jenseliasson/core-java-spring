@@ -241,6 +241,18 @@ public class DTOConverter {
 		
 		return result;
 	}
+	
+	//-------------------------------------------------------------------------------------------------	
+	public static CloudListResponseDTO convertCloudListToCloudListResponseDTO(final Page<Cloud> entries) {
+		Assert.notNull(entries, "CloudList is null");
+		
+		final List<CloudResponseDTO> cloudEntries = new ArrayList<>(entries.getNumberOfElements());
+		for (final Cloud entry : entries) {
+			cloudEntries.add(convertCloudToCloudResponseDTO(entry));
+		}
+		
+		return new CloudListResponseDTO(cloudEntries, entries.getTotalElements());
+	}
 
 	//-------------------------------------------------------------------------------------------------	
 	public static CloudResponseDTO convertCloudToCloudResponseDTO(final Cloud entity) {
@@ -332,7 +344,7 @@ public class DTOConverter {
 	
 	//-------------------------------------------------------------------------------------------------
 	public static OrchestratorStoreListResponseDTO convertOrchestratorStoreEntryListToOrchestratorStoreListResponseDTO(
-			final List<OrchestratorStoreResponseDTO> entries, long totalElements) {
+			final List<OrchestratorStoreResponseDTO> entries, final long totalElements) {
 		Assert.notNull(entries, "OrchestratorStoreList is null");
 
 		return new OrchestratorStoreListResponseDTO(entries, totalElements);
@@ -394,7 +406,7 @@ public class DTOConverter {
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	public static SystemResponseDTO convertForeignSystemToSystemResponseDTO(ForeignSystem foreignSystem) {
+	public static SystemResponseDTO convertForeignSystemToSystemResponseDTO(final ForeignSystem foreignSystem) {
 		Assert.notNull(foreignSystem, "ForeignSystem is null");
 		
 		return new SystemResponseDTO(foreignSystem.getId(), foreignSystem.getSystemName(), foreignSystem.getAddress(), foreignSystem.getPort(), foreignSystem.getAuthenticationInfo(),

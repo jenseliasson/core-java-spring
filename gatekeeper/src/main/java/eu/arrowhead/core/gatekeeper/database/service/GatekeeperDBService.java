@@ -1,10 +1,8 @@
 package eu.arrowhead.core.gatekeeper.database.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,59 +47,64 @@ public class GatekeeperDBService {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)
-	public List<CloudGatekeeper> registerBulkCloudsWithGatekeepers(final List<CloudRequestDTO> dtoList) {
+	public List<Cloud> registerBulkCloudsWithGatekeepers(final List<CloudRequestDTO> dtoList) {
 		logger.debug("registerBulkCloudsWithGatekeepers started...");
-		
-		if (dtoList == null || dtoList.isEmpty()) {
-			throw new InvalidParameterException("List of cloudRequestDTO is null or empty");
-		}
-		final List<CloudRequestDTO> dtoMarkedAsSecureOwnCloud = new ArrayList<>();
-		final List<CloudRequestDTO> dtoMarkedAsInsecureOwnCloud = new ArrayList<>();
-		for (final CloudRequestDTO dto : dtoList) {
-			validateCloudRequestDTO(dto);
+	
+		try {
 			
-			if (dto.getOwnCloud() && dto.getSecure()) {
-				dtoMarkedAsSecureOwnCloud.add(dto);
+			if (dtoList == null || dtoList.isEmpty()) {
+				throw new InvalidParameterException("List of cloudRequestDTO is null or empty");
 			}
-			if (dto.getOwnCloud() && !dto.getSecure()) {
-				dtoMarkedAsInsecureOwnCloud.add(dto);
+			final List<CloudRequestDTO> dtoMarkedAsSecureOwnCloud = new ArrayList<>();
+			final List<CloudRequestDTO> dtoMarkedAsInsecureOwnCloud = new ArrayList<>();
+			for (final CloudRequestDTO dto : dtoList) {
+				validateCloudRequestDTO(dto);
+				
+				if (dto.getOwnCloud() && dto.getSecure()) {
+					dtoMarkedAsSecureOwnCloud.add(dto);
+				}
+				if (dto.getOwnCloud() && !dto.getSecure()) {
+					dtoMarkedAsInsecureOwnCloud.add(dto);
+				}
 			}
+			
+			validateOwnCloudRegistrationRequest(dtoMarkedAsSecureOwnCloud, dtoMarkedAsInsecureOwnCloud);
+			
+			final List<Cloud> cloudsToSave = new ArrayList<>(dtoList.size());
+			final Set<String> dtoOperatorAndNameCombinations = new HashSet<>();
+			final Set<String> dtoAddressPortUriCombinations = new HashSet<>();
+			for (final CloudRequestDTO dto : dtoList) {
+				
+				//Creating cloud
+				if (dtoOperatorAndNameCombinations.contains(dto.getOperator() +  dto.getName())) {
+					throw new InvalidParameterException("More than one CloudRequestDTO have the following operator and name combination :" + dto.getOperator() + ", " + dto.getName());
+				}
+				checkUniqueConstraintOfCloudTable(dto.getOperator(), dto.getName());
+				final Cloud cloud = new Cloud(dto.getOperator(), dto.getName(), dto.getSecure(), dto.getNeighbor(), dto.getOwnCloud());
+				
+				//Creating gatekeeper
+				if (dtoAddressPortUriCombinations.contains(dto.getAddress() + dto.getPort() + dto.getServiceUri())) {
+					throw new InvalidParameterException("More than one CloudRequestDTO have the following address, port and serviceUri combination :" + dto.getAddress() + ", " + dto.getPort() + ", " + dto.getServiceUri());
+				}
+				checkUniqueConstraintOfCloudGatekeeperTable(null, dto.getAddress(), dto.getPort(), dto.getServiceUri());
+				cloud.setGatekeeper(new CloudGatekeeper(cloud, dto.getAddress(), dto.getPort(), dto.getServiceUri(), dto.getAuthenticationInfo()));
+				
+				cloudsToSave.add(cloud);
+				dtoOperatorAndNameCombinations.add(dto.getOperator() + dto.getName());
+				dtoAddressPortUriCombinations.add(dto.getAddress() + dto.getPort() + dto.getServiceUri());
+			}
+			
+			final List<Cloud> savedClouds = cloudRepository.saveAll(cloudsToSave);
+			cloudRepository.flush();
+			return savedClouds;
+			
+		} catch (final InvalidParameterException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}
 		
-		validateOwnCloudRegistrationRequest(dtoMarkedAsSecureOwnCloud, dtoMarkedAsInsecureOwnCloud);
-		
-		//Creating clouds
-		final List<Cloud> cloudsToSave = new ArrayList<>(dtoList.size());
-		final Map<String, CloudRequestDTO> dtoByOperatorAndNameCombinations = new HashMap<>();
-		for (final CloudRequestDTO dto : dtoList) {
-			if (dtoByOperatorAndNameCombinations.containsKey(dto.getOperator() +  dto.getName())) {
-				throw new InvalidParameterException("More than one CloudRequestDTO have the following operator and name combination :" + dto.getOperator() + ", " + dto.getName());
-			}
-			checkUniqueConstraintOfCloudTable(dto.getOperator(), dto.getName());
-			cloudsToSave.add(new Cloud(dto.getOperator(), dto.getName(), dto.getSecure(), dto.getNeighbor(), dto.getOwnCloud()));
-			dtoByOperatorAndNameCombinations.put(dto.getOperator() + dto.getName(), dto);
-		}
-		
-		final List<Cloud> savedClouds = cloudRepository.saveAll(cloudsToSave);
-		cloudRepository.flush();
-		
-		//Creating gatekeepers
-		final List<CloudGatekeeper> gatekeepersToSave = new ArrayList<>(dtoList.size());
-		final Set<String> dtoAddressPortUriCombinations = new HashSet<>();
-		for (final Cloud cloud : savedClouds) {
-			final CloudRequestDTO dto = dtoByOperatorAndNameCombinations.get(cloud.getOperator() + cloud.getName());
-			if (dtoAddressPortUriCombinations.contains(dto.getAddress() + dto.getPort() + dto.getServiceUri())) {
-				throw new InvalidParameterException("More than one CloudRequestDTO have the following address, port and serviceUri combination :" + dto.getAddress() + ", " + dto.getPort() + ", " + dto.getServiceUri());
-			}
-			checkUniqueConstraintOfCloudGatekeeperTable(null, dto.getAddress(), dto.getPort(), dto.getServiceUri());
-			gatekeepersToSave.add(new CloudGatekeeper(cloud, dto.getAddress(), dto.getPort(), dto.getServiceUri(), dto.getAuthenticationInfo()));
-			dtoAddressPortUriCombinations.add(dto.getAddress() + dto.getPort() + dto.getServiceUri());
-		}
-		
-		final List<CloudGatekeeper> savedGatekeepers = cloudGatekeeperRepository.saveAll(gatekeepersToSave);
-		cloudGatekeeperRepository.flush();
-		
-		return savedGatekeepers;
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -109,12 +112,14 @@ public class GatekeeperDBService {
 		logger.debug("getGatekeeperByCloud started...");
 		
 		try {
+			
 			final Optional<CloudGatekeeper> gatekeeperOpt = cloudGatekeeperRepository.findByCloud(cloud);
 			if (gatekeeperOpt.isEmpty()) {
 				throw new InvalidParameterException("Gatekeeper with cloud: " + cloud + " not exists.");
 			} else {
 				return gatekeeperOpt.get();
 			}
+			
 		} catch (final InvalidParameterException ex) {
 			throw ex;
 		} catch (final Exception ex) {
@@ -129,21 +134,29 @@ public class GatekeeperDBService {
 		logger.debug("registerGatekeeper started...");
 		
 		try {
+			
 			Assert.isTrue(cloud != null, "Cloud is null.");
 			Assert.isTrue(!Utilities.isEmpty(address), "Address is null or empty.");
 			Assert.isTrue(!Utilities.isEmpty(serviceUri), "ServiceUri is null or empty.");			
+						
+			if (isPortOutOfValidRange(port)) {
+				throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
+			}
+			
+			checkUniqueConstraintOfCloudGatekeeperTable(cloud, address, port, serviceUri);
+			
+			final CloudGatekeeper gatekeeper = new CloudGatekeeper(cloud, address, port, serviceUri, authenticationInfo);
+			return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
+			
 		} catch (final IllegalArgumentException ex) {
 			throw new InvalidParameterException(ex.getMessage());
+		} catch (final InvalidParameterException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}
 		
-		if (isPortOutOfValidRange(port)) {
-			throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
-		}
-		
-		checkUniqueConstraintOfCloudGatekeeperTable(cloud, address, port, serviceUri);
-		
-		final CloudGatekeeper gatekeeper = new CloudGatekeeper(cloud, address, port, serviceUri, authenticationInfo);
-		return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -152,25 +165,32 @@ public class GatekeeperDBService {
 		logger.debug("registerGatekeeper started...");
 		
 		try {
+			
 			Assert.isTrue(gatekeeper != null, "Gatekeeper is null.");
 			Assert.isTrue(!Utilities.isEmpty(address), "Address is null or empty.");
 			Assert.isTrue(!Utilities.isEmpty(serviceUri), "ServiceUri is null or empty.");					
+			
+			if (isPortOutOfValidRange(port)) {
+				throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
+			}
+			
+			checkUniqueConstraintOfCloudGatekeeperTable(null, address, port, serviceUri);
+			
+			gatekeeper.setAddress(address);
+			gatekeeper.setPort(port);
+			gatekeeper.setServiceUri(serviceUri);
+			gatekeeper.setAuthenticationInfo(authenticationInfo);
+			
+			return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
+			
 		} catch (final IllegalArgumentException ex) {
 			throw new InvalidParameterException(ex.getMessage());
-		}
-		
-		if (isPortOutOfValidRange(port)) {
-			throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
-		}
-		
-		checkUniqueConstraintOfCloudGatekeeperTable(null, address, port, serviceUri);
-		
-		gatekeeper.setAddress(address);
-		gatekeeper.setPort(port);
-		gatekeeper.setServiceUri(serviceUri);
-		gatekeeper.setAuthenticationInfo(authenticationInfo);
-		
-		return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
+		} catch (final InvalidParameterException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
+		}		
 	}
 	
 	//=================================================================================================

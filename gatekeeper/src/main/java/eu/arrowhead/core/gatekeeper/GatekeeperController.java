@@ -4,6 +4,7 @@ import org.apache.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import eu.arrowhead.common.CommonConstants;
@@ -16,6 +17,7 @@ import io.swagger.annotations.ApiResponses;
 allowedHeaders = { HttpHeaders.ORIGIN, HttpHeaders.CONTENT_TYPE, HttpHeaders.ACCEPT, HttpHeaders.AUTHORIZATION }
 )
 @RestController
+@RequestMapping(CommonConstants.GATEKEEPER_URI)
 public class GatekeeperController {
 	
 	//=================================================================================================

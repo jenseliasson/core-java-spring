@@ -14,6 +14,7 @@ public class CloudRequestDTO implements Serializable {
 	private String address;
 	private Integer port;
 	private String serviceUri;
+	private String authenticationInfo;
 	private Boolean secure;
 	private Boolean neighbor;
 	private Boolean ownCloud;
@@ -27,6 +28,7 @@ public class CloudRequestDTO implements Serializable {
 	public String getAddress() { return address; }
 	public Integer getPort() { return port; }
 	public String getServiceUri() { return serviceUri; }
+	public String getAuthenticationInfo() { return authenticationInfo; }
 	public Boolean getSecure() { return secure; }
 	public Boolean getNeighbor() { return neighbor; }
 	public Boolean getOwnCloud() { return ownCloud; }
@@ -37,6 +39,7 @@ public class CloudRequestDTO implements Serializable {
 	public void setAddress(final String address) { this.address = address; }
 	public void setPort(final Integer port) { this.port = port; }
 	public void setServiceUri(final String serviceUri) { this.serviceUri = serviceUri; }
+	public void setAuthenticationInfo(final String authenticationInfo) { this.authenticationInfo = authenticationInfo; }
 	public void setSecure(final Boolean secure) { this.secure = secure; }
 	public void setNeighbor(final Boolean neighbor) { this.neighbor = neighbor; }
 	public void setOwnCloud(final Boolean ownCloud) { this.ownCloud = ownCloud; }

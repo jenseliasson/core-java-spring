@@ -1,8 +1,10 @@
 package eu.arrowhead.core.gatekeeper.database.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -82,6 +84,7 @@ public class GatekeeperDBService {
 			validateOwnCloudRegistrationRequest(dtoMarkedAsSecureOwnCloud, dtoMarkedAsInsecureOwnCloud);
 			
 			final List<Cloud> cloudsToSave = new ArrayList<>(validatedDtoList.size());
+			final Map<String, CloudGatekeeper> gatekeepersByCloudOperatorAndName = new HashMap<>();
 			final Set<String> dtoOperatorAndNameCombinations = new HashSet<>();
 			final Set<String> dtoAddressPortUriCombinations = new HashSet<>();
 			for (final CloudRequestDTO dto : validatedDtoList) {
@@ -98,7 +101,8 @@ public class GatekeeperDBService {
 					throw new InvalidParameterException("More than one CloudRequestDTO have the following address, port and serviceUri combination :" + dto.getAddress() + ", " + dto.getPort() + ", " + dto.getServiceUri());
 				}
 				checkUniqueConstraintOfCloudGatekeeperTable(null, dto.getAddress(), dto.getPort(), dto.getServiceUri());
-				cloud.setGatekeeper(new CloudGatekeeper(cloud, dto.getAddress(), dto.getPort(), dto.getServiceUri(), dto.getAuthenticationInfo()));
+				final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper(cloud, dto.getAddress(), dto.getPort(), dto.getServiceUri(), dto.getAuthenticationInfo());
+				gatekeepersByCloudOperatorAndName.put(cloud.getOperator() + cloud.getName(), cloudGatekeeper);
 				
 				cloudsToSave.add(cloud);
 				dtoOperatorAndNameCombinations.add(dto.getOperator() + dto.getName());
@@ -107,6 +111,16 @@ public class GatekeeperDBService {
 			
 			final List<Cloud> savedClouds = cloudRepository.saveAll(cloudsToSave);
 			cloudRepository.flush();
+			
+			for (final Cloud savedCloud : savedClouds) {
+				final CloudGatekeeper cloudGatekeeper = gatekeepersByCloudOperatorAndName.get(savedCloud.getOperator() + savedCloud.getName());
+				cloudGatekeeper.setCloud(savedCloud);
+				savedCloud.setGatekeeper(cloudGatekeeper);
+			}
+			
+			cloudGatekeeperRepository.saveAll(gatekeepersByCloudOperatorAndName.values());
+			cloudGatekeeperRepository.flush();
+			
 			return savedClouds;
 			
 		} catch (final InvalidParameterException ex) {

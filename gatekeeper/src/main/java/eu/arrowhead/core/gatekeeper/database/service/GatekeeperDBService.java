@@ -9,6 +9,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -20,7 +21,9 @@ import eu.arrowhead.common.database.entity.CloudGatekeeper;
 import eu.arrowhead.common.database.repository.CloudGatekeeperRepository;
 import eu.arrowhead.common.database.repository.CloudRepository;
 import eu.arrowhead.common.database.service.CommonDBService;
+import eu.arrowhead.common.dto.CloudListResponseDTO;
 import eu.arrowhead.common.dto.CloudRequestDTO;
+import eu.arrowhead.common.dto.DTOConverter;
 import eu.arrowhead.common.exception.ArrowheadException;
 import eu.arrowhead.common.exception.DataNotFoundException;
 import eu.arrowhead.common.exception.InvalidParameterException;
@@ -44,6 +47,15 @@ public class GatekeeperDBService {
 	
 	//=================================================================================================
 	// methods
+	
+	//-------------------------------------------------------------------------------------------------
+	@Transactional(rollbackFor = ArrowheadException.class)
+	public CloudListResponseDTO registerBulkCloudsWithGatekeepersResponse(final List<CloudRequestDTO> dtoList) {
+		logger.debug("registerBulkCloudsWithGatekeepersResponse started...");
+		
+		final List<Cloud> entries = registerBulkCloudsWithGatekeepers(dtoList);
+		return DTOConverter.convertCloudListToCloudListResponseDTO(new PageImpl<Cloud>(entries));
+	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)

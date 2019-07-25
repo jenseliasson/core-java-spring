@@ -50,27 +50,26 @@ public class GatekeeperDBService {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)
-	public CloudListResponseDTO registerBulkCloudsWithGatekeepersResponse(final List<CloudRequestDTO> dtoList) {
+	public CloudListResponseDTO registerBulkCloudsWithGatekeepersResponse(final List<CloudRequestDTO> validatedDtoList) {
 		logger.debug("registerBulkCloudsWithGatekeepersResponse started...");
 		
-		final List<Cloud> entries = registerBulkCloudsWithGatekeepers(dtoList);
+		final List<Cloud> entries = registerBulkCloudsWithGatekeepers(validatedDtoList);
 		return DTOConverter.convertCloudListToCloudListResponseDTO(new PageImpl<Cloud>(entries));
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)
-	public List<Cloud> registerBulkCloudsWithGatekeepers(final List<CloudRequestDTO> dtoList) {
+	public List<Cloud> registerBulkCloudsWithGatekeepers(final List<CloudRequestDTO> validatedDtoList) {
 		logger.debug("registerBulkCloudsWithGatekeepers started...");
 	
 		try {
 			
-			if (dtoList == null || dtoList.isEmpty()) {
+			if (validatedDtoList == null || validatedDtoList.isEmpty()) {
 				throw new InvalidParameterException("List of cloudRequestDTO is null or empty");
 			}
 			final List<CloudRequestDTO> dtoMarkedAsSecureOwnCloud = new ArrayList<>();
 			final List<CloudRequestDTO> dtoMarkedAsInsecureOwnCloud = new ArrayList<>();
-			for (final CloudRequestDTO dto : dtoList) {
-				validateCloudRequestDTO(dto);
+			for (final CloudRequestDTO dto : validatedDtoList) {
 				
 				if (dto.getOwnCloud() && dto.getSecure()) {
 					dtoMarkedAsSecureOwnCloud.add(dto);
@@ -82,10 +81,10 @@ public class GatekeeperDBService {
 			
 			validateOwnCloudRegistrationRequest(dtoMarkedAsSecureOwnCloud, dtoMarkedAsInsecureOwnCloud);
 			
-			final List<Cloud> cloudsToSave = new ArrayList<>(dtoList.size());
+			final List<Cloud> cloudsToSave = new ArrayList<>(validatedDtoList.size());
 			final Set<String> dtoOperatorAndNameCombinations = new HashSet<>();
 			final Set<String> dtoAddressPortUriCombinations = new HashSet<>();
-			for (final CloudRequestDTO dto : dtoList) {
+			for (final CloudRequestDTO dto : validatedDtoList) {
 				
 				//Creating cloud
 				if (dtoOperatorAndNameCombinations.contains(dto.getOperator() +  dto.getName())) {
@@ -159,8 +158,8 @@ public class GatekeeperDBService {
 				throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud. Cloud: " + cloud);
 			}
 			
-			String validatedAddress = address.toLowerCase().trim();
-			String validatedServiceUri = serviceUri.trim();
+			final String validatedAddress = address.toLowerCase().trim();
+			final String validatedServiceUri = serviceUri.trim();
 			
 			checkUniqueConstraintOfCloudGatekeeperTable(cloud, validatedAddress, port, validatedServiceUri);
 			
@@ -197,8 +196,8 @@ public class GatekeeperDBService {
 				throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud. Cloud: " + gatekeeper.getCloud());
 			}
 								
-			String validatedAddress = address.toLowerCase().trim();
-			String validatedServiceUri = serviceUri.trim();
+			final String validatedAddress = address.toLowerCase().trim();
+			final String validatedServiceUri = serviceUri.trim();
 
 			if(!gatekeeper.getAddress().equals(validatedAddress) || gatekeeper.getPort() != port || !gatekeeper.getServiceUri().equals(validatedServiceUri)) {
 				checkUniqueConstraintOfCloudGatekeeperTable(null, validatedAddress, port, validatedServiceUri);			
@@ -274,50 +273,6 @@ public class GatekeeperDBService {
 	private boolean isPortOutOfValidRange(final int port) {
 		logger.debug("isPortOutOfValidRange started...");
 		return port < CommonConstants.SYSTEM_PORT_RANGE_MIN || port > CommonConstants.SYSTEM_PORT_RANGE_MAX;
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	private void validateCloudRequestDTO(final CloudRequestDTO dto) {
-		logger.debug("validateCloudRequestDTO started...");
-		
-		final boolean isOperatorInvalid = Utilities.isEmpty(dto.getOperator());
-		final boolean isNameInvalid = Utilities.isEmpty(dto.getName());
-		final boolean isAddressInvalid = Utilities.isEmpty(dto.getAddress());
-		final boolean isPortInvalid = dto.getPort() == null || isPortOutOfValidRange(dto.getPort());
-		final boolean isServiceUriInvalid = Utilities.isEmpty(dto.getServiceUri());
-		final boolean isSecureFlagMissing = dto.getSecure() == null;
-		final boolean isNeighborFlagMissing = dto.getNeighbor() == null;
-		final boolean isOwnCloudFlagMissing = dto.getOwnCloud() == null;
-		
-		if (isOperatorInvalid || isNameInvalid || isAddressInvalid || isPortInvalid || isServiceUriInvalid) {
-			String exceptionMessage = "Following parameters are not valid:";
-			exceptionMessage = isOperatorInvalid ? exceptionMessage + " operator is empty," : exceptionMessage;
-			exceptionMessage = isNameInvalid ? exceptionMessage + " name is empty," : exceptionMessage;
-			exceptionMessage = isAddressInvalid ? exceptionMessage + " address is empty," : exceptionMessage;
-			exceptionMessage = isPortInvalid ? exceptionMessage + " port is missing or out of valid range," : exceptionMessage;
-			exceptionMessage = isServiceUriInvalid ? exceptionMessage + " serviceUri is empty," : exceptionMessage;
-			exceptionMessage = exceptionMessage.substring(0, exceptionMessage.length() - 1);
-			
-			throw new InvalidParameterException(exceptionMessage);
-		}
-		
-		dto.setOperator(dto.getOperator().toLowerCase().trim());
-		dto.setName(dto.getName().toLowerCase().trim());
-		dto.setAddress(dto.getAddress().toLowerCase().trim());
-		dto.setServiceUri(dto.getServiceUri().trim());
-		if (isSecureFlagMissing) {
-			dto.setSecure(false);
-		}
-		if (isNeighborFlagMissing) {
-			dto.setNeighbor(false);
-		}
-		if (isOwnCloudFlagMissing) {
-			dto.setOwnCloud(false);
-		}
-		
-		if(dto.getSecure() && Utilities.isEmpty(dto.getAuthenticationInfo())) {
-			throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud.");
-		}
 	}
 	
 	//-------------------------------------------------------------------------------------------------

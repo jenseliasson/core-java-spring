@@ -1,7 +1,5 @@
 package eu.arrowhead.common;
 
-import java.util.List;
-
 import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
 import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
 import org.jose4j.jws.AlgorithmIdentifiers;

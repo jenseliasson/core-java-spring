@@ -176,6 +176,24 @@ public class GatekeeperDBServiceTest {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Test(expected = InvalidParameterException.class)
+	public void testUpdateGatekeeperWithSecureCloudButhWithoutAuthInfo() {	
+		Cloud cloud = new Cloud();
+		cloud.setSecure(true);
+		final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper( cloud, "1.1.1.1", 1000, "/testuri", "fewrdc");
+		gatekeeperDBService.updateGatekeeper(cloudGatekeeper, "2.2.2.2", 2000, "/testUri", null);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Test(expected = InvalidParameterException.class)
+	public void testUpdateGatekeeperWithSecureCloudButhWithBlankAuthInfo() {	
+		Cloud cloud = new Cloud();
+		cloud.setSecure(true);
+		final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper( cloud, "1.1.1.1", 1000, "/testuri", "fewrdc");
+		gatekeeperDBService.updateGatekeeper(cloudGatekeeper, "2.2.2.2", 2000, "/testUri", "");
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Test(expected = InvalidParameterException.class)
 	public void testUpdateGatekeeperWithAlreadyExistingAdrressPortUriCombination() {
 		final String address = "1.1.1.1";
 		final int port = 1000;

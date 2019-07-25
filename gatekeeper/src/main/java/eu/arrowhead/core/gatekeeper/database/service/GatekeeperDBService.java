@@ -149,10 +149,14 @@ public class GatekeeperDBService {
 			
 			Assert.isTrue(cloud != null, "Cloud is null.");
 			Assert.isTrue(!Utilities.isEmpty(address), "Address is null or empty.");
-			Assert.isTrue(!Utilities.isEmpty(serviceUri), "ServiceUri is null or empty.");			
+			Assert.isTrue(!Utilities.isEmpty(serviceUri), "ServiceUri is null or empty.");
 						
 			if (isPortOutOfValidRange(port)) {
 				throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
+			}
+			
+			if (cloud.getSecure() && Utilities.isEmpty(authenticationInfo)) {
+				throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud. Cloud: " + cloud);
 			}
 			
 			String validatedAddress = address.toLowerCase().trim();
@@ -188,7 +192,11 @@ public class GatekeeperDBService {
 			if (isPortOutOfValidRange(port)) {
 				throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
 			}
-					
+						
+			if (gatekeeper.getCloud().getSecure() && Utilities.isEmpty(authenticationInfo)) {
+				throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud. Cloud: " + gatekeeper.getCloud());
+			}
+								
 			String validatedAddress = address.toLowerCase().trim();
 			String validatedServiceUri = serviceUri.trim();
 
@@ -305,6 +313,10 @@ public class GatekeeperDBService {
 		}
 		if (isOwnCloudFlagMissing) {
 			dto.setOwnCloud(false);
+		}
+		
+		if(dto.getSecure() && Utilities.isEmpty(dto.getAuthenticationInfo())) {
+			throw new InvalidParameterException("Gatekeeper without or with blank authenticationInfo cannot be registered for a secured cloud.");
 		}
 	}
 	

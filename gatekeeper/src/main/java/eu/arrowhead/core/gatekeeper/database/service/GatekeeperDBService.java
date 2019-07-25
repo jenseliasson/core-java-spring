@@ -169,6 +169,17 @@ public class GatekeeperDBService {
 			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}
 		
+		if (port < CommonConstants.SYSTEM_PORT_RANGE_MIN || port > CommonConstants.SYSTEM_PORT_RANGE_MAX) {
+			throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
+		}
+		
+		String validatedAddress = address.toLowerCase().trim();
+		String validatedServiceUri = serviceUri.trim();
+		
+		checkUniqueConstraintOfCloudGatekeeperTable(cloud, validatedAddress, port, validatedServiceUri);
+		
+		final CloudGatekeeper gatekeeper = new CloudGatekeeper(cloud, validatedAddress, port, validatedServiceUri, authenticationInfo);
+		return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -203,6 +214,25 @@ public class GatekeeperDBService {
 			logger.debug(ex.getMessage(), ex);
 			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}		
+		}
+		
+		if (port < CommonConstants.SYSTEM_PORT_RANGE_MIN || port > CommonConstants.SYSTEM_PORT_RANGE_MAX) {
+			throw new InvalidParameterException("Port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".");
+		}
+		
+		String validatedAddress = address.toLowerCase().trim();
+		String validatedServiceUri = serviceUri.trim();
+		
+		if(!gatekeeper.getAddress().equals(validatedAddress) || gatekeeper.getPort() != port || !gatekeeper.getServiceUri().equals(validatedServiceUri)) {
+			checkUniqueConstraintOfCloudGatekeeperTable(null, validatedAddress, port, validatedServiceUri);			
+		}
+		
+		gatekeeper.setAddress(validatedAddress);
+		gatekeeper.setPort(port);
+		gatekeeper.setServiceUri(validatedServiceUri);
+		gatekeeper.setAuthenticationInfo(authenticationInfo);
+		
+		return cloudGatekeeperRepository.saveAndFlush(gatekeeper);
 	}
 	
 	//=================================================================================================

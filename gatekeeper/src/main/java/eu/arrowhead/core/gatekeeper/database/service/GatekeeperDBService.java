@@ -295,6 +295,8 @@ public class GatekeeperDBService {
 		
 		dto.setOperator(dto.getOperator().toLowerCase().trim());
 		dto.setName(dto.getName().toLowerCase().trim());
+		dto.setAddress(dto.getAddress().toLowerCase().trim());
+		dto.setServiceUri(dto.getServiceUri().trim());
 		if (isSecureFlagMissing) {
 			dto.setSecure(false);
 		}

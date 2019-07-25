@@ -102,6 +102,22 @@ public class GatekeeperDBServiceTest {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Test(expected = InvalidParameterException.class)
+	public void testRegisterGatekeeperWithSecureCloudButhWithoutAuthInfo() {	
+		final Cloud cloud = new Cloud();
+		cloud.setSecure(true);
+		gatekeeperDBService.registerGatekeeper(cloud, "2.2.2.2", 2000, "/testUri", null);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Test(expected = InvalidParameterException.class)
+	public void testRegisterGatekeeperWithSecureCloudButhWithBlankAuthInfo() {	
+		final Cloud cloud = new Cloud();
+		cloud.setSecure(true);
+		gatekeeperDBService.registerGatekeeper(cloud, "2.2.2.2", 2000, "/testUri", "");
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Test(expected = InvalidParameterException.class)
 	public void testRegisterGatekeeperWithCloudAlreadyHavingGatekeeper() {
 		final Cloud cloud = new Cloud();
 		final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper(cloud, "0.0.0.0", 1000, "", null);
@@ -177,7 +193,7 @@ public class GatekeeperDBServiceTest {
 	//-------------------------------------------------------------------------------------------------
 	@Test(expected = InvalidParameterException.class)
 	public void testUpdateGatekeeperWithSecureCloudButhWithoutAuthInfo() {	
-		Cloud cloud = new Cloud();
+		final Cloud cloud = new Cloud();
 		cloud.setSecure(true);
 		final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper( cloud, "1.1.1.1", 1000, "/testuri", "fewrdc");
 		gatekeeperDBService.updateGatekeeper(cloudGatekeeper, "2.2.2.2", 2000, "/testUri", null);
@@ -186,7 +202,7 @@ public class GatekeeperDBServiceTest {
 	//-------------------------------------------------------------------------------------------------
 	@Test(expected = InvalidParameterException.class)
 	public void testUpdateGatekeeperWithSecureCloudButhWithBlankAuthInfo() {	
-		Cloud cloud = new Cloud();
+		final Cloud cloud = new Cloud();
 		cloud.setSecure(true);
 		final CloudGatekeeper cloudGatekeeper = new CloudGatekeeper( cloud, "1.1.1.1", 1000, "/testuri", "fewrdc");
 		gatekeeperDBService.updateGatekeeper(cloudGatekeeper, "2.2.2.2", 2000, "/testUri", "");

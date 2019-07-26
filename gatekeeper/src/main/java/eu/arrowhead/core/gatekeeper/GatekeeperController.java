@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,12 +39,18 @@ public class GatekeeperController {
 	
 	//=================================================================================================
 	// members
+
+	private static final String PATH_VARIABLE_ID = "id";
+	private static final String ID_NOT_VALID_ERROR_MESSAGE = "Id must be greater than 0.";
 	
 	private static final String GATEKEEPER_MGMT_CLOUDS_URI = CommonConstants.MGMT_URI + "/clouds";
+	private static final String GATEKEEPER_MGMT_CLOUDS_BY_ID_URI = GATEKEEPER_MGMT_CLOUDS_URI + "/{" + PATH_VARIABLE_ID + "}";
 	
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) created";
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not create Cloud(s)";
-		
+	private static final String DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_200_MESSAGE = "Cloud removed";
+	private static final String DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not remove Cloud";
+	
 	private final Logger logger = LogManager.getLogger(GatekeeperController.class);
 	
 	@Autowired
@@ -88,6 +96,26 @@ public class GatekeeperController {
 		
 		logger.debug("registerClouds has been finished.");
 		return registeredEntries;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Remove the requested Cloud entry with its Gatekeeper")
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_OK, message = DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_200_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
+	})
+	@DeleteMapping(path = GATEKEEPER_MGMT_CLOUDS_BY_ID_URI)
+	public void removeCloudById(@PathVariable(value = PATH_VARIABLE_ID) final long id) {
+		logger.debug("removeCloud started...");
+		
+		if (id < 1) {
+			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, CommonConstants.GATEKEEPER_URI + GATEKEEPER_MGMT_CLOUDS_BY_ID_URI);
+		}
+		
+		gatekeeperDBService.removeCloudById(id);
+		logger.debug("removeCloud has been finished.");
 	}
 	
 	//=================================================================================================

@@ -9,6 +9,7 @@ public class CloudRequestDTO implements Serializable {
 	
 	private static final long serialVersionUID = 7397917411719621910L;
 	
+	private Long id;
 	private String operator;
 	private String name;
 	private String address;
@@ -23,6 +24,7 @@ public class CloudRequestDTO implements Serializable {
 	// methods
 
 	//-------------------------------------------------------------------------------------------------
+	public Long getId() { return id; }
 	public String getOperator() { return operator; }
 	public String getName() { return name; }
 	public String getAddress() { return address; }
@@ -34,6 +36,7 @@ public class CloudRequestDTO implements Serializable {
 	public Boolean getOwnCloud() { return ownCloud; }
 	
 	//-------------------------------------------------------------------------------------------------
+	public void setId(final Long id) { this.id = id; }
 	public void setOperator(final String operator) { this.operator = operator; }
 	public void setName(final String name) { this.name = name; }
 	public void setAddress(final String address) { this.address = address; }

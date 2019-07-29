@@ -134,6 +134,93 @@ public class GatekeeperDBService {
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)
+	public CloudListResponseDTO updateCloudsWithGatekeepersResponse(final List<CloudRequestDTO> validatedDtoList) {
+		logger.debug("updateCloudsWithGatekeepersResponse started...");
+		
+		final List<Cloud> entries = updateCloudsWithGatekeepers(validatedDtoList);
+		return DTOConverter.convertCloudListToCloudListResponseDTO(new PageImpl<Cloud>(entries));
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Transactional(rollbackFor = ArrowheadException.class)
+	public List<Cloud> updateCloudsWithGatekeepers(final List<CloudRequestDTO> validatedDtoList) {
+		logger.debug("updateBulkCloudsWithGatekeepers started...");
+		final List<Cloud> updatedClouds = new ArrayList<>(validatedDtoList.size());
+		
+		try {
+			
+			if (validatedDtoList == null || validatedDtoList.isEmpty()) {
+				throw new InvalidParameterException("List of cloudRequestDTO is null or empty");
+			}
+			
+			final Set<String> cloudUniqueContraintsFromDTOs = new HashSet<>();
+			final Set<String> gatekeeperUniqueContraintsFromDTOs = new HashSet<>();			
+			for (final CloudRequestDTO dto : validatedDtoList) {
+				if(dto.getId() == null || dto.getId() < 1) {
+					throw new InvalidParameterException("DTO has invalid id: " + dto);
+				}
+				
+				final Optional<Cloud> existingCloud = cloudRepository.findById(dto.getId());
+				if (existingCloud.isEmpty()) {
+					throw new InvalidParameterException("No cloud exists with the following id: " + dto.getId());
+				}
+				
+				//Own cloud can't be updated and a not own cloud can't be updated for being own cloud as this is managed automatically by the ApplicationInitListener
+				if (existingCloud.get().getOwnCloud()) {
+					throw new InvalidParameterException("Own cloud can't be updated as it is managed automatically by the ApplicationInitListener. Own cloud: " + existingCloud.get());
+				}
+				if(dto.getOwnCloud()) {
+					throw new InvalidParameterException("A not own cloud can't be updated for being an own cloud as it is managed automatically by the ApplicationInitListener. Cloud: "+ existingCloud.get());
+				}
+				
+				//Checking unique constraints
+				if(cloudUniqueContraintsFromDTOs.contains(dto.getOperator() + dto.getName())) {
+					throw new InvalidParameterException("DTO list contains cloud unique constraint violation (oprator, name): " + dto.getOperator() + ", " + dto.getName());
+				}
+				if(gatekeeperUniqueContraintsFromDTOs.contains(dto.getAddress() + dto.getPort() + dto.getServiceUri())) {
+					throw new InvalidParameterException("DTO list contains gatekeeper unique constraint violation (address, port, serviceUri): " + dto.getAddress() + ", " + dto.getPort() + ", " + dto.getServiceUri());
+				}
+				if(!dto.getOperator().equalsIgnoreCase(existingCloud.get().getOperator()) || !dto.getName().equalsIgnoreCase(existingCloud.get().getName())) {
+					checkUniqueConstraintOfCloudTable(dto.getOperator(), dto.getName());					
+				}
+				if (!dto.getAddress().equalsIgnoreCase(existingCloud.get().getGatekeeper().getAddress())
+						|| dto.getPort() != existingCloud.get().getGatekeeper().getPort()
+						|| !dto.getServiceUri().equalsIgnoreCase(existingCloud.get().getGatekeeper().getServiceUri())) {
+					
+					checkUniqueConstraintOfCloudGatekeeperTable(null, dto.getAddress(), dto.getPort(), dto.getServiceUri());
+				}
+				
+				//Update cloud
+				final Cloud cloudToBeUpdated = existingCloud.get();
+				final CloudGatekeeper gatekeeperToBeUpdated = existingCloud.get().getGatekeeper();
+				
+				gatekeeperToBeUpdated.setAddress(dto.getAddress());
+				gatekeeperToBeUpdated.setPort(dto.getPort());
+				gatekeeperToBeUpdated.setServiceUri(dto.getServiceUri());
+				gatekeeperToBeUpdated.setAuthenticationInfo(dto.getAuthenticationInfo());
+				gatekeeperUniqueContraintsFromDTOs.add(dto.getAddress() + dto.getPort() + dto.getServiceUri());
+				cloudGatekeeperRepository.saveAndFlush(gatekeeperToBeUpdated);
+				
+				cloudToBeUpdated.setOperator(dto.getOperator());
+				cloudToBeUpdated.setName(dto.getName());
+				cloudToBeUpdated.setSecure(dto.getSecure());
+				cloudToBeUpdated.setNeighbor(dto.getNeighbor());
+				cloudUniqueContraintsFromDTOs.add(dto.getOperator() + dto.getName());
+				updatedClouds.add(cloudRepository.saveAndFlush(cloudToBeUpdated));				
+			}
+			
+			return updatedClouds;
+			
+		} catch (final InvalidParameterException ex) {
+			throw ex;
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
+		}		
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@Transactional(rollbackFor = ArrowheadException.class)
 	public void removeCloudById(final long id) {
 		try {
 
@@ -354,5 +441,10 @@ public class GatekeeperDBService {
 			logger.debug(ex.getMessage(), ex);
 			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	private void validateCloudUpdateRequest(final CloudRequestDTO dto) {
+		
 	}
 }

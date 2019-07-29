@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -48,6 +49,8 @@ public class GatekeeperController {
 	
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) created";
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not create Cloud(s)";
+	private static final String PUT_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) updated";
+	private static final String PUT_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not update Cloud(s)";
 	private static final String DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_200_MESSAGE = "Cloud removed";
 	private static final String DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not remove Cloud";
 	
@@ -99,6 +102,32 @@ public class GatekeeperController {
 	}
 	
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Update the requested Cloud entries", response = CloudListResponseDTO.class)
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_CREATED, message = PUT_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = PUT_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
+	})
+	@PutMapping(path = GATEKEEPER_MGMT_CLOUDS_URI, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public CloudListResponseDTO updateClouds(@RequestBody final List<CloudRequestDTO> request) {
+		logger.debug("updateClouds started...");
+		
+		if (request == null || request.isEmpty()) {
+			throw new BadPayloadException("CloudRequestDTO is empty.", HttpStatus.SC_BAD_REQUEST, CommonConstants.GATEKEEPER_URI + GATEKEEPER_MGMT_CLOUDS_URI);
+		}
+		
+		for (final CloudRequestDTO dto : request) {
+			validateCloudRequestDTO(dto, CommonConstants.GATEKEEPER_URI + GATEKEEPER_MGMT_CLOUDS_URI);
+		}
+		
+		final CloudListResponseDTO updatedEntries = gatekeeperDBService.updateCloudsWithGatekeepersResponse(request);
+		
+		logger.debug("updateClouds has been finished.");
+		return updatedEntries;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
 	@ApiOperation(value = "Remove the requested Cloud entry with its Gatekeeper")
 	@ApiResponses (value = {
 			@ApiResponse(code = HttpStatus.SC_OK, message = DELETE_GATEKEEPER_MGMT_CLOUDS_HTTP_200_MESSAGE),
@@ -124,6 +153,10 @@ public class GatekeeperController {
 	//-------------------------------------------------------------------------------------------------
 	private void validateCloudRequestDTO(final CloudRequestDTO dto, final String origin) {
 		logger.debug("validateCloudRequestDTO started...");
+		
+		if (dto.getId() != null && dto.getId() < 1) {
+			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
+		}
 		
 		final boolean isOperatorInvalid = Utilities.isEmpty(dto.getOperator());
 		final boolean isNameInvalid = Utilities.isEmpty(dto.getName());

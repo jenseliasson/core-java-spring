@@ -11,7 +11,10 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -49,6 +52,35 @@ public class GatekeeperDBService {
 	
 	//=================================================================================================
 	// methods
+	
+	//-------------------------------------------------------------------------------------------------
+	public CloudListResponseDTO getCloudsResponse(final int page, final int size, final Direction direction, final String sortField) {
+		logger.debug("getCloudsResponse started...");
+		
+		final Page<Cloud> entries = getClouds(page, size, direction, sortField);
+		return DTOConverter.convertCloudListToCloudListResponseDTO(entries);
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public Page<Cloud> getClouds(final int page, final int size, final Direction direction, final String sortField) {
+		logger.debug("getClouds started...");
+		
+		final int validatedPage = page < 0 ? 0 : page;
+		final int validatedSize = size <= 0 ? Integer.MAX_VALUE : size; 		
+		final Direction validatedDirection = direction == null ? Direction.ASC : direction;
+		final String validatedSortField = Utilities.isEmpty(sortField) ? CommonConstants.COMMON_FIELD_NAME_ID : sortField.trim();
+		
+		if (!Cloud.SORTABLE_FIELDS_BY.contains(validatedSortField)) {
+			throw new InvalidParameterException("Sortable field with reference '" + validatedSortField + "' is not available");
+		}
+		
+		try {
+			return cloudRepository.findAll(PageRequest.of(validatedPage, validatedSize, validatedDirection, validatedSortField));
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
+		}
+	}
 	
 	//-------------------------------------------------------------------------------------------------
 	@Transactional(rollbackFor = ArrowheadException.class)
@@ -441,10 +473,5 @@ public class GatekeeperDBService {
 			logger.debug(ex.getMessage(), ex);
 			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
 		}
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	private void validateCloudUpdateRequest(final CloudRequestDTO dto) {
-		
 	}
 }

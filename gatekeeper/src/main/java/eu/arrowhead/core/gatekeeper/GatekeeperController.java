@@ -6,6 +6,7 @@ import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,6 +49,8 @@ public class GatekeeperController {
 	private static final String GATEKEEPER_MGMT_CLOUDS_URI = CommonConstants.MGMT_URI + "/clouds";
 	private static final String GATEKEEPER_MGMT_CLOUDS_BY_ID_URI = GATEKEEPER_MGMT_CLOUDS_URI + "/{" + PATH_VARIABLE_ID + "}";
 	
+	private static final String GET_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) returned";
+	private static final String GET_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not retrieve Cloud(s)";
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) created";
 	private static final String POST_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE = "Could not create Cloud(s)";
 	private static final String PUT_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE = "Cloud(s) updated";
@@ -72,6 +76,43 @@ public class GatekeeperController {
 	@GetMapping(path = CommonConstants.ECHO_URI)
 	public String echoService() {
 		return "Got it!";
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Return the requested Cloud entries", response = CloudListResponseDTO.class)
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_CREATED, message = GET_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = GET_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
+	})
+	@GetMapping(path = GATEKEEPER_MGMT_CLOUDS_URI, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public CloudListResponseDTO getClouds(@RequestParam(name = CommonConstants.REQUEST_PARAM_PAGE, required = false) final Integer page,
+			@RequestParam(name = CommonConstants.REQUEST_PARAM_ITEM_PER_PAGE, required = false) final Integer size,
+			@RequestParam(name = CommonConstants.REQUEST_PARAM_DIRECTION, defaultValue = Defaults.DEFAULT_REQUEST_PARAM_DIRECTION_VALUE) final String direction,
+			@RequestParam(name = CommonConstants.REQUEST_PARAM_SORT_FIELD, defaultValue = CommonConstants.COMMON_FIELD_NAME_ID) final String sortField) {
+		logger.debug("getClouds started...");
+		
+		int validatedPage;
+		int validatedSize;
+		if (page == null && size == null) {
+			validatedPage = -1;
+			validatedSize = -1;
+		} else {
+			if (page == null || size == null) {
+				throw new BadPayloadException("Defined page or size could not be with undefined size or page.", HttpStatus.SC_BAD_REQUEST, CommonConstants.GATEKEEPER_URI +
+						GATEKEEPER_MGMT_CLOUDS_URI);
+			} else {
+				validatedPage = page;
+				validatedSize = size;
+			}
+		}
+		final Direction validatedDirection = Utilities.calculateDirection(direction, CommonConstants.AUTHORIZATION_URI + GATEKEEPER_MGMT_CLOUDS_URI);
+		
+		final CloudListResponseDTO cloudsResponse = gatekeeperDBService.getCloudsResponse(validatedPage, validatedSize, validatedDirection, sortField);
+		
+		logger.debug("getClouds has been finished.");
+		return cloudsResponse;
 	}
 	
 	//-------------------------------------------------------------------------------------------------

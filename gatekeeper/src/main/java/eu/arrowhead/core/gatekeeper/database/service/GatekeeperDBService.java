@@ -28,6 +28,7 @@ import eu.arrowhead.common.database.repository.CloudRepository;
 import eu.arrowhead.common.database.service.CommonDBService;
 import eu.arrowhead.common.dto.CloudListResponseDTO;
 import eu.arrowhead.common.dto.CloudRequestDTO;
+import eu.arrowhead.common.dto.CloudResponseDTO;
 import eu.arrowhead.common.dto.DTOConverter;
 import eu.arrowhead.common.exception.ArrowheadException;
 import eu.arrowhead.common.exception.DataNotFoundException;
@@ -76,6 +77,34 @@ public class GatekeeperDBService {
 		
 		try {
 			return cloudRepository.findAll(PageRequest.of(validatedPage, validatedSize, validatedDirection, validatedSortField));
+		} catch (final Exception ex) {
+			logger.debug(ex.getMessage(), ex);
+			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);
+		}
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public CloudResponseDTO getCloudByIdResponse(final long id) {
+		logger.debug("getCloudByIdResponse started...");
+		
+		return DTOConverter.convertCloudToCloudResponseDTO(getCloudById(id));
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	public Cloud getCloudById(final long id) {
+		logger.debug("getCloudById started...");
+		
+		try {
+			
+			final Optional<Cloud> find = cloudRepository.findById(id);
+			if (find.isEmpty()) {
+				throw new InvalidParameterException("Cloud with id of '" + id + "' not exists");
+			} else {
+				return find.get();
+			}
+			
+		} catch (final InvalidParameterException ex) {
+			throw ex;
 		} catch (final Exception ex) {
 			logger.debug(ex.getMessage(), ex);
 			throw new ArrowheadException(CommonConstants.DATABASE_OPERATION_EXCEPTION_MSG);

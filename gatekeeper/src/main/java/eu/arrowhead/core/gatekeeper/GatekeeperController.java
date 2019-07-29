@@ -27,6 +27,7 @@ import eu.arrowhead.common.Defaults;
 import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.CloudListResponseDTO;
 import eu.arrowhead.common.dto.CloudRequestDTO;
+import eu.arrowhead.common.dto.CloudResponseDTO;
 import eu.arrowhead.common.exception.BadPayloadException;
 import eu.arrowhead.core.gatekeeper.database.service.GatekeeperDBService;
 import io.swagger.annotations.ApiOperation;
@@ -113,6 +114,28 @@ public class GatekeeperController {
 		
 		logger.debug("getClouds has been finished.");
 		return cloudsResponse;
+	}
+	
+	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Return the requested Cloud entry", response = CloudResponseDTO.class)
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_CREATED, message = GET_GATEKEEPER_MGMT_CLOUDS_HTTP_201_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = GET_GATEKEEPER_MGMT_CLOUDS_HTTP_400_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
+	})
+	@GetMapping(path = GATEKEEPER_MGMT_CLOUDS_BY_ID_URI, produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public CloudResponseDTO getCloudById(@PathVariable(value = PATH_VARIABLE_ID) final long id) {
+		logger.debug("Cloud get request recieved with id: {}", id);
+		
+		if (id < 1) {
+			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, CommonConstants.GATEKEEPER_URI + GATEKEEPER_MGMT_CLOUDS_BY_ID_URI);
+		}
+		
+		final CloudResponseDTO cloudEntry = gatekeeperDBService.getCloudByIdResponse(id);
+		
+		logger.debug("Cloud get request has been finished");
+		return cloudEntry;
 	}
 	
 	//-------------------------------------------------------------------------------------------------

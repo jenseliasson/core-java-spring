@@ -28,6 +28,7 @@
 	    <module>authorization</module>
 	    <module>orchestrator</module>
 	    <module>eventhandler</module>
+	    <module>datamanager</module>
 	    <module>gatekeeper</module>
 	    <module>gateway</module>
 	    <module>choreographer</module>

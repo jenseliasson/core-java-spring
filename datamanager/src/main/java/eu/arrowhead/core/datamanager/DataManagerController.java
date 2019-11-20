@@ -35,8 +35,8 @@ import eu.arrowhead.common.dto.shared.SubscriptionRequestDTO;
 import eu.arrowhead.common.dto.shared.SubscriptionResponseDTO;
 import eu.arrowhead.common.dto.shared.SystemRequestDTO;
 import eu.arrowhead.common.exception.BadPayloadException;
-import eu.arrowhead.core.eventhandler.database.service.EventHandlerDBService;
-import eu.arrowhead.core.eventhandler.service.EventHandlerService;
+import eu.arrowhead.core.datamanager.database.service.DataManagerDBService;
+import eu.arrowhead.core.datamanager.service.DataManagerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -103,10 +103,10 @@ public class DataManagerController {
 	private final Logger logger = LogManager.getLogger(DataManagerController.class);
 	
 	@Autowired
-	EventHandlerService eventHandlerService;
+	DataManagerService dataManagerService;
 	
 	@Autowired
-	EventHandlerDBService eventHandlerDBService;
+	DataManagerDBService dataManagerDBService;
 	
 	//=================================================================================================
 	// methods
@@ -165,7 +165,7 @@ public class DataManagerController {
 		logger.debug("New getSubscriptions get request recieved with page: {} and item_per page: {}", page, size);
 				
 		final ValidatedPageParams validParameters = CoreUtilities.validatePageParameters( page, size, direction, CommonConstants.EVENT_HANDLER_URI + EVENT_HANDLER_MGMT_URI );
-		final SubscriptionListResponseDTO subscriptionsResponse = eventHandlerDBService.getSubscriptionsResponse( validParameters.getValidatedPage(), validParameters.getValidatedSize(), 
+		final SubscriptionListResponseDTO subscriptionsResponse = dataManagerDBService.getSubscriptionsResponse( validParameters.getValidatedPage(), validParameters.getValidatedSize(), 
 																									validParameters.getValidatedDirecion(), sortField );
 		
 		logger.debug("Subscriptions  with page: {} and item_per page: {} retrieved successfully", page, size);
@@ -189,7 +189,7 @@ public class DataManagerController {
 			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
 		}
 		
-		final SubscriptionResponseDTO subscriptionResponse = eventHandlerDBService.getSubscriptionByIdResponse( id );
+		final SubscriptionResponseDTO subscriptionResponse = dataManagerDBService.getSubscriptionByIdResponse( id );
 		
 		logger.debug("Subscription entry with id: {} successfully retrieved", id);
 		
@@ -213,7 +213,7 @@ public class DataManagerController {
 			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
 		}
 		
-		eventHandlerDBService.deleteSubscriptionResponse(id);
+		dataManagerDBService.deleteSubscriptionResponse(id);
 		
 		logger.debug("Subscription entry with id: {} successfully deleted", id);
 		
@@ -241,7 +241,7 @@ public class DataManagerController {
 		
 		checkSubscriptionRequestDTO(request, origin);
 		
-		final SubscriptionResponseDTO response = eventHandlerService.updateSubscriptionResponse(id, request);
+		final SubscriptionResponseDTO response = dataManagerService.updateSubscriptionResponse(id, request);
 		
 		logger.debug("Subscription entry with id: {} successfully updated", id);
 		
@@ -263,7 +263,7 @@ public class DataManagerController {
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
 		checkSubscriptionRequestDTO( request, origin );
 		
-	    eventHandlerService.subscribe( request );
+	    dataManagerService.subscribe( request );
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ public class DataManagerController {
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
 		checkUnsubscribeParameters(eventType, subscriberName, subscriberAddress, subscriberPort, origin);
 		
-	    eventHandlerService.unsubscribe( eventType, subscriberName, subscriberAddress, subscriberPort );
+	    dataManagerService.unsubscribe( eventType, subscriberName, subscriberAddress, subscriberPort );
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -305,7 +305,7 @@ public class DataManagerController {
 		
 		validateTimeStamp(request, origin);
 		
-	    eventHandlerService.publishResponse(request);
+	    dataManagerService.publishResponse(request);
 	}
 	
 	//-------------------------------------------------------------------------------------------------
@@ -326,7 +326,7 @@ public class DataManagerController {
 		
 		validateTimeStamp(request, origin);
 		
-	    eventHandlerService.publishSubscriberAuthorizationUpdateResponse(request);
+	    dataManagerService.publishSubscriberAuthorizationUpdateResponse(request);
 	}
 	
 	//=================================================================================================

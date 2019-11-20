@@ -18,12 +18,11 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 @EnableSwagger2
 public class DataManagerMain {
 
-        //=================================================================================================
-        // methods
+	//=================================================================================================
+	// methods
 
-        //-------------------------------------------------------------------------------------------------
-        public static void main(final String[] args) {
-                SpringApplication.run(DataManagerMain.class, args);
-        }
+	//-------------------------------------------------------------------------------------------------
+	public static void main(final String[] args) {
+		SpringApplication.run(DataManagerMain.class, args);
+	}
 }
-

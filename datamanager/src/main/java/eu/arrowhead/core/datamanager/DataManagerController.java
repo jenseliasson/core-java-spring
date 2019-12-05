@@ -94,8 +94,6 @@ public class DataManagerController {
 	private static final String NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE = " is null or blank.";
 	private static final String ID_NOT_VALID_ERROR_MESSAGE = " Id must be greater than 0. ";
 	private static final String WRONG_FORMAT_ERROR_MESSAGE = " is in wrong format. ";
-	private static final String IS_AFTER_TOLERATED_DIFF_ERROR_MESSAGE = " is further in the future than the tolerated time difference";
-	private static final String IS_BEFORE_TOLERATED_DIFF_ERROR_MESSAGE = " is further in the past than the tolerated time difference";
 
 	@Value( CoreCommonConstants.$TIME_STAMP_TOLERANCE_SECONDS_WD )
 	private long timeStampTolerance;
@@ -136,7 +134,7 @@ public class DataManagerController {
 		@PathVariable(value="system", required=true) String systemName
 			) {
 		System.out.println("DataManager::Historian/"+systemName);
-		return "DataManager::Historian";
+		return "DataManager::Historian/" + systemName;
 	}
 
 	@GetMapping(value= "/historian/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
@@ -147,6 +145,32 @@ public class DataManagerController {
 		System.out.println("DataManager::Historian/"+systemName+"/"+serviceName);
 		return "DataManager::Historian";
 	}
+
+	//-------------------------------------------------------------------------------------------------
+	@GetMapping(value= "/proxy")
+	public String proxyS(
+			) {
+		System.out.println("DataManager::Proxy/");
+		return "DataManager::Proxy";
+	}
+
+	@GetMapping(value= "/proxy/{system}")
+	public String proxySystem(
+		@PathVariable(value="system", required=true) String systemName
+			) {
+		System.out.println("DataManager::proxy/"+systemName);
+		return "DataManager::Proxy/" + systemName;
+	}
+
+	@GetMapping(value= "/proxy/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
+	public String proxyService(
+		@PathVariable(value="system", required=true) String systemName,
+		@PathVariable(value="service", required=true) String serviceName
+			) {
+		System.out.println("DataManager::Proxy/"+systemName+"/"+serviceName);
+		return "DataManager::Proxy/"+systemName+"/"+serviceName;
+	}
+
 
 	//-------------------------------------------------------------------------------------------------
 	@ApiOperation(value = GET_EVENT_HANDLER_MGMT_DESCRIPTION, response = SubscriptionListResponseDTO.class, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
@@ -164,9 +188,8 @@ public class DataManagerController {
 			@RequestParam(name = CoreCommonConstants.REQUEST_PARAM_SORT_FIELD, defaultValue = CommonConstants.COMMON_FIELD_NAME_ID) final String sortField) {
 		logger.debug("New getSubscriptions get request recieved with page: {} and item_per page: {}", page, size);
 				
-		final ValidatedPageParams validParameters = CoreUtilities.validatePageParameters( page, size, direction, CommonConstants.EVENT_HANDLER_URI + EVENT_HANDLER_MGMT_URI );
-		final SubscriptionListResponseDTO subscriptionsResponse = dataManagerDBService.getSubscriptionsResponse( validParameters.getValidatedPage(), validParameters.getValidatedSize(), 
-																									validParameters.getValidatedDirecion(), sortField );
+		//final ValidatedPageParams validParameters = CoreUtilities.validatePageParameters( page, size, direction, CommonConstants.EVENT_HANDLER_URI + EVENT_HANDLER_MGMT_URI );
+		final SubscriptionListResponseDTO subscriptionsResponse = null; //dataManagerDBService.getSubscriptionsResponse( validParameters.getValidatedPage(), validParameters.getValidatedSize(), 
 		
 		logger.debug("Subscriptions  with page: {} and item_per page: {} retrieved successfully", page, size);
 		return subscriptionsResponse;
@@ -213,7 +236,7 @@ public class DataManagerController {
 			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
 		}
 		
-		dataManagerDBService.deleteSubscriptionResponse(id);
+		//dataManagerDBService.deleteSubscriptionResponse(id);
 		
 		logger.debug("Subscription entry with id: {} successfully deleted", id);
 		
@@ -239,11 +262,10 @@ public class DataManagerController {
 			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
 		}
 		
-		checkSubscriptionRequestDTO(request, origin);
+		//checkSubscriptionRequestDTO(request, origin);
 		
 		final SubscriptionResponseDTO response = dataManagerService.updateSubscriptionResponse(id, request);
 		
-		logger.debug("Subscription entry with id: {} successfully updated", id);
 		
 		return response;
 	}
@@ -261,7 +283,7 @@ public class DataManagerController {
 		logger.debug("subscription started ...");
 		
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
-		checkSubscriptionRequestDTO( request, origin );
+		//checkSubscriptionRequestDTO( request, origin );
 		
 	    dataManagerService.subscribe( request );
 	}
@@ -283,7 +305,7 @@ public class DataManagerController {
 		logger.debug("unSubscription started ...");
 		
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
-		checkUnsubscribeParameters(eventType, subscriberName, subscriberAddress, subscriberPort, origin);
+		//checkUnsubscribeParameters(eventType, subscriberName, subscriberAddress, subscriberPort, origin);
 		
 	    dataManagerService.unsubscribe( eventType, subscriberName, subscriberAddress, subscriberPort );
 	}
@@ -301,9 +323,8 @@ public class DataManagerController {
 		logger.debug("publish started ...");
 		
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_PUBLISH;
-		checkEventPublishRequestDTO(request, origin);
+	//	checkEventPublishRequestDTO(request, origin);
 		
-		validateTimeStamp(request, origin);
 		
 	    dataManagerService.publishResponse(request);
 	}
@@ -322,9 +343,6 @@ public class DataManagerController {
 		
 		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_PUBLISH_AUTH_UPDATE;
 
-		checkEventPublishRequestDTO(request, origin);
-		
-		validateTimeStamp(request, origin);
 		
 	    dataManagerService.publishSubscriberAuthorizationUpdateResponse(request);
 	}
@@ -336,76 +354,17 @@ public class DataManagerController {
 	private void checkSubscriptionRequestDTO( final SubscriptionRequestDTO request, final String origin) {
 		logger.debug("checkSubscriptionRequestDTO started ...");
 		
-		if (request == null) {
-			throw new BadPayloadException("Request" + NULL_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		checkSystemRequestDTO(request.getSubscriberSystem(), origin);
-		
-		if ( Utilities.isEmpty( request.getEventType() )) {
-			throw new BadPayloadException("Request.EventType" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);	
-		}
-		
-		if ( Utilities.isEmpty( request.getNotifyUri() )) {
-			throw new BadPayloadException("Request.NotifyUri" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);	
-		}		
-		
-		if ( request.getMatchMetaData() && ( request.getFilterMetaData() == null || request.getFilterMetaData().isEmpty() )) {
-			
-			throw new BadPayloadException("Request.MatchMetaData is true but Request.FilterMetaData" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (request.getSources() != null && !request.getSources().isEmpty()) {
-			for (final SystemRequestDTO systemRequestDTO : request.getSources()) {
-				checkSystemRequestDTO(systemRequestDTO, origin);
-			}
-		}	
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	private void checkSystemRequestDTO(final SystemRequestDTO system, final String origin) {
 		logger.debug("checkSystemRequestDTO started...");
-		
-		if (system == null) {
-			throw new BadPayloadException("System" + NULL_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (Utilities.isEmpty(system.getSystemName())) {
-			throw new BadPayloadException("System name" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (Utilities.isEmpty(system.getAddress())) {
-			throw new BadPayloadException("System address" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (system.getPort() == null) {
-			throw new BadPayloadException("System port" + NULL_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		final int validatedPort = system.getPort().intValue();
-		if (validatedPort < CommonConstants.SYSTEM_PORT_RANGE_MIN || validatedPort > CommonConstants.SYSTEM_PORT_RANGE_MAX) {
-			throw new BadPayloadException("System port must be between " + CommonConstants.SYSTEM_PORT_RANGE_MIN + " and " + CommonConstants.SYSTEM_PORT_RANGE_MAX + ".",
-										  HttpStatus.SC_BAD_REQUEST, origin);
-		}
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	private void checkEventPublishRequestDTO(final EventPublishRequestDTO request, final String origin) {
 		logger.debug("checkEventPublishRequestDTO started ...");
 		
-		if (request == null) {
-			throw new BadPayloadException("Request" + NULL_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		checkSystemRequestDTO(request.getSource(), origin);
-		
-		if ( Utilities.isEmpty( request.getEventType() )) {
-			throw new BadPayloadException("Request.EventType" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if ( Utilities.isEmpty( request.getPayload() )) {
-			throw new BadPayloadException("Request.Payload" + NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}	
 		
 	}
 	
@@ -414,52 +373,11 @@ public class DataManagerController {
 	private void validateTimeStamp(final EventPublishRequestDTO request, final String origin) {
 		logger.debug("validateTimeStamp started ...");
 		
-		if ( Utilities.isEmpty( request.getTimeStamp() )) {
-			
-			request.setTimeStamp(Utilities.convertZonedDateTimeToUTCString(ZonedDateTime.now()));
-		
-		} else	{
-			
-			final ZonedDateTime now = ZonedDateTime.now();
-			final ZonedDateTime timeStamp;
-
-			try {
-				
-				timeStamp = Utilities.parseUTCStringToLocalZonedDateTime(request.getTimeStamp());
-			
-			} catch (final DateTimeParseException ex) {
-				
-				throw new BadPayloadException("Request.TimeStamp" + WRONG_FORMAT_ERROR_MESSAGE + ex, HttpStatus.SC_BAD_REQUEST, origin);
-			}
-			
-			if (timeStamp.isAfter(now.plusSeconds( timeStampTolerance ))) {
-				
-				throw new BadPayloadException("Request.TimeStamp" + IS_AFTER_TOLERATED_DIFF_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-			}
-			
-			if (timeStamp.isBefore(now.minusSeconds( timeStampTolerance ))) {
-				
-				throw new BadPayloadException("Request.TimeStamp" + IS_BEFORE_TOLERATED_DIFF_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-			}
-
-		}
 	}
 	
 	//-------------------------------------------------------------------------------------------------
 	private void checkUnsubscribeParameters( final String eventType, final String subscriberName, final String subscriberAddress, final int subscriberPort, final String origin) {
 		logger.debug("checkUnsubscribeParameters started...");
-		
-		if (Utilities.isEmpty( eventType )) {
-			throw new BadPayloadException("Event Type is blank", HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (Utilities.isEmpty(subscriberName)) {
-			throw new BadPayloadException("Name of the subscriber system is blank", HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		if (Utilities.isEmpty(subscriberAddress)) {
-			throw new BadPayloadException("Address of the subscriber system is blank", HttpStatus.SC_BAD_REQUEST, origin);
-		}
 		
 	}
 

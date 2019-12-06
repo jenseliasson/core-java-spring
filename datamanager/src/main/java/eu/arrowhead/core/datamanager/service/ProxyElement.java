@@ -21,7 +21,8 @@ public class ProxyElement {
    * @fn public ProxyElement(String name, Vector<SenMLMessage> senml)
    * @brief creates a new ProxyElement from a SenML message
    */
-  public ProxyElement(String serviceName, Vector<SenML> senml) {
+  public ProxyElement(String systemName, String serviceName, Vector<SenML> senml) {
+    this.systemName = new String(systemName);
     this.serviceName = new String(serviceName);
     this.msg = senml;
   }

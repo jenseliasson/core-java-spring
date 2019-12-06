@@ -308,6 +308,12 @@ public class DataManagerController {
 			} else { 
 				throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "createResult: Already exists");
 			}
+		} else if(op.equals("delete")){
+			String srvName = obj.get("srvName").getAsString();
+			String srvType = obj.get("srvType").getAsString();
+			logger.info("Delete Service: "+srvName+" of type: "+srvType+" for: " + systemName);
+
+			/* check if service already exists */
 		}
 
 		return "";
@@ -337,9 +343,10 @@ public class DataManagerController {
 			Iterator i = pe.msg.iterator();
 			String senml = "";
 			while (i.hasNext()) {
-				senml += (i.next().toString())+"\n";
+				senml += ((i.next().toString())+"\n");
+				System.out.println("\t"+senml);
 			}
-			return senml;
+			return pe.msg.toString(); //senml;
 			}
 
 	//-------------------------------------------------------------------------------------------------
@@ -359,11 +366,13 @@ public class DataManagerController {
 			throw new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Service not found");
 		}
 
-		//System.out.println("sml: "+ sml + "\t"+sml.toString());
-		boolean statusCode = ProxyService.updateEndpoint(serviceName, sml);
-		logger.info("putData/SenML returned with status code: " + statusCode + " from: " + sml.get(0).getBn() + " at: " + sml.get(0).getBt());
+		boolean statusCode = ProxyService.updateEndpoint(systemName, serviceName, sml);
+		//logger.info("putData/SenML returned with status code: " + statusCode + " from: " + sml.get(0).getBn() + " at: " + sml.get(0).getBt());
 
-		String jsonret = "{\"rc\": 0}";
+		int ret = 0;
+		if (statusCode == false)
+			ret = 1;
+		String jsonret = "{\"rc\": "+ret+"}";
 		return jsonret;
 	}
 

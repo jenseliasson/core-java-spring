@@ -96,7 +96,7 @@ public class CommonConstants {
 	public static final String OP_GATEKEEPER_ICN_SERVICE = "/init_icn";
 
 	public static final String CHOREOGRAPHER_URI = "/choreographer";
-	
+
 	public static final String GATEWAY_URI = "/gateway";
 	public static final String OP_GATEWAY_KEY_URI = "/publickey";
 	public static final String OP_GATEWAY_CONNECT_PROVIDER_URI = "/connect_provider";
@@ -105,7 +105,6 @@ public class CommonConstants {
 	public static final String EVENT_HANDLER_URI = "/eventhandler";
 	public static final String OP_EVENT_HANDLER_PUBLISH = "/publish";
 	public static final String OP_EVENT_HANDLER_SUBSCRIBE = "/subscribe";
-
 	public static final String OP_EVENT_HANDLER_UNSUBSCRIBE = "/unsubscribe";
 	public static final String OP_EVENT_HANDLER_PUBLISH_AUTH_UPDATE = "/publish/authupdate";
 
@@ -122,7 +121,8 @@ public class CommonConstants {
 	public static final String ECHO_URI = "/echo";
 	
 	public static final List<CoreSystemService> PUBLIC_CORE_SYSTEM_SERVICES = List.of(CoreSystemService.ORCHESTRATION_SERVICE, CoreSystemService.AUTH_PUBLIC_KEY_SERVICE,
-			 															   			  CoreSystemService.EVENT_PUBLISH_SERVICE, CoreSystemService.EVENT_SUBSCRIBE_SERVICE);
+  			  																		  CoreSystemService.EVENT_PUBLISH_SERVICE, CoreSystemService.EVENT_SUBSCRIBE_SERVICE,
+  			  																		  CoreSystemService.EVENT_UNSUBSCRIBE_SERVICE);
 	
 	public static final String HTTP_CLIENT_CONNECTION_TIMEOUT = "http.client.connection.timeout";
 	public static final String $HTTP_CLIENT_CONNECTION_TIMEOUT_WD = "${" + HTTP_CLIENT_CONNECTION_TIMEOUT + ":" + Defaults.DEFAULT_CONNECTION_TIMEOUT + "}";

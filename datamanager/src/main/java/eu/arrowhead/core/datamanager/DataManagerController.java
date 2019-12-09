@@ -379,6 +379,10 @@ public class DataManagerController {
 			throw new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Service not found");
 		}
 
+		if (validateSenML(sml) == false) {
+			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Invalid SenML (not compliant to RFC 8428)");
+		}
+
 		boolean statusCode = ProxyService.updateEndpoint(systemName, serviceName, sml);
 		//logger.info("putData/SenML returned with status code: " + statusCode + " from: " + sml.get(0).getBn() + " at: " + sml.get(0).getBt());
 
@@ -388,186 +392,33 @@ public class DataManagerController {
 		String jsonret = "{\"rc\": "+ret+"}";
 		return jsonret;
 	}
-/*
-
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = GET_EVENT_HANDLER_MGMT_DESCRIPTION, response = SubscriptionListResponseDTO.class, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
-	@ApiResponses(value = {
-	@ApiResponse(code = HttpStatus.SC_OK, message = GET_EVENT_HANDLER_MGMT_HTTP_200_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = GET_EVENT_HANDLER_MGMT_HTTP_400_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@GetMapping(path = EVENT_HANDLER_MGMT_URI, produces = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public SubscriptionListResponseDTO getSubscriptions(
-	@RequestParam(name = CoreCommonConstants.REQUEST_PARAM_PAGE, required = false) final Integer page,
-	@RequestParam(name = CoreCommonConstants.REQUEST_PARAM_ITEM_PER_PAGE, required = false) final Integer size,
-	@RequestParam(name = CoreCommonConstants.REQUEST_PARAM_DIRECTION, defaultValue = CoreDefaults.DEFAULT_REQUEST_PARAM_DIRECTION_VALUE) final String direction,
-	@RequestParam(name = CoreCommonConstants.REQUEST_PARAM_SORT_FIELD, defaultValue = CommonConstants.COMMON_FIELD_NAME_ID) final String sortField) {
-	logger.debug("New getSubscriptions get request recieved with page: {} and item_per page: {}", page, size);
-
-	//final ValidatedPageParams validParameters = CoreUtilities.validatePageParameters( page, size, direction, CommonConstants.EVENT_HANDLER_URI + EVENT_HANDLER_MGMT_URI );
-	final SubscriptionListResponseDTO subscriptionsResponse = null; //dataManagerDBService.getSubscriptionsResponse( validParameters.getValidatedPage(), validParameters.getValidatedSize(), 
-
-	logger.debug("Subscriptions  with page: {} and item_per page: {} retrieved successfully", page, size);
-	return subscriptionsResponse;
-	}
-
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = GET_EVENT_HANDLER_BY_ID_MGMT_DESCRIPTION, response = SubscriptionResponseDTO.class, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
-	@ApiResponses(value = {
-	@ApiResponse(code = HttpStatus.SC_OK, message = GET_EVENT_HANDLER_BY_ID_MGMT_HTTP_200_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = GET_EVENT_HANDLER_BY_ID_MGMT_HTTP_400_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-	@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@GetMapping(path = EVENTHANLER_BY_ID_MGMT_URI, produces = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public SubscriptionResponseDTO getSubscriptionById(@PathVariable(value = PATH_VARIABLE_ID) final long id) {
-	logger.debug("New getSubscriptionById get request recieved with id: {}", id);
-
-	final String origin = CommonConstants.EVENT_HANDLER_URI + EVENTHANLER_BY_ID_MGMT_URI;
-	if (id < 1) {
-		throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		final SubscriptionResponseDTO subscriptionResponse = dataManagerDBService.getSubscriptionByIdResponse( id );
-		
-		logger.debug("Subscription entry with id: {} successfully retrieved", id);
-		
-		return subscriptionResponse;
-	}
 	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = DELETE_EVENT_HANDLER_MGMT_DESCRIPTION, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = DELETE_EVENT_HANDLER_MGMT_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = DELETE_EVENT_HANDLER_MGMT_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@DeleteMapping(path = EVENTHANLER_BY_ID_MGMT_URI, produces = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public void deleteSubscription(@PathVariable(value = PATH_VARIABLE_ID) final long id) {
-		logger.debug("New deleteSubscription delete request recieved with id: {}", id);
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + EVENTHANLER_BY_ID_MGMT_URI;
-		if (id < 1) {
-			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		//dataManagerDBService.deleteSubscriptionResponse(id);
-		
-		logger.debug("Subscription entry with id: {} successfully deleted", id);
-		
-		return;
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = PUT_EVENT_HANDLER_MGMT_DESCRIPTION, response = SubscriptionResponseDTO.class, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = PUT_EVENT_HANDLER_MGMT_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = PUT_EVENT_HANDLER_MGMT_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@PutMapping(path = EVENTHANLER_BY_ID_MGMT_URI, produces = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public SubscriptionResponseDTO updateSubscription(
-			@PathVariable(value = PATH_VARIABLE_ID) final long id,
-			@RequestBody final SubscriptionRequestDTO request) {
-		logger.debug("New updateSubscription put request recieved with id: {}", id);
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + EVENTHANLER_BY_ID_MGMT_URI;
-		if (id < 1) {
-			throw new BadPayloadException(ID_NOT_VALID_ERROR_MESSAGE, HttpStatus.SC_BAD_REQUEST, origin);
-		}
-		
-		//checkSubscriptionRequestDTO(request, origin);
-		
-		final SubscriptionResponseDTO response = dataManagerService.updateSubscriptionResponse(id, request);
-		
-		
-		return response;
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = POST_EVENT_HANDLER_SUBSCRIPTION_DESCRIPTION, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = POST_EVENT_HANDLER_SUBSCRIPTION_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = POST_EVENT_HANDLER_SUBSCRIPTION_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@PostMapping(path = CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public void subscribe(@RequestBody final SubscriptionRequestDTO request) {
-		logger.debug("subscription started ...");
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
-		//checkSubscriptionRequestDTO( request, origin );
-		
-	    dataManagerService.subscribe( request );
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = DELETE_EVENT_HANDLER_SUBSCRIPTION_DESCRIPTION,  tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = DELETE_EVENT_HANDLER_SUBSCRIPTION_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = DELETE_EVENT_HANDLER_SUBSCRIPTION_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@DeleteMapping(path = CommonConstants.OP_EVENT_HANDLER_UNSUBSCRIBE)
-	@ResponseBody public void unsubscribe(
-			@RequestParam(CommonConstants.OP_EVENT_HANDLER_UNSUBSCRIBE_REQUEST_PARAM_EVENT_TYPE) final String eventType,
-			@RequestParam(CommonConstants.OP_EVENT_HANDLER_UNSUBSCRIBE_REQUEST_PARAM_SUBSCRIBER_SYSTEM_NAME) final String subscriberName,
-			@RequestParam(CommonConstants.OP_EVENT_HANDLER_UNSUBSCRIBE_REQUEST_PARAM_SUBSCRIBER_ADDRESS) final String subscriberAddress,
-			@RequestParam(CommonConstants.OP_EVENT_HANDLER_UNSUBSCRIBE_REQUEST_PARAM_SUBSCRIBER_PORT) final int subscriberPort) {
-		logger.debug("unSubscription started ...");
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_SUBSCRIBE;
-		//checkUnsubscribeParameters(eventType, subscriberName, subscriberAddress, subscriberPort, origin);
-		
-	    dataManagerService.unsubscribe( eventType, subscriberName, subscriberAddress, subscriberPort );
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = POST_EVENT_HANDLER_PUBLISH_DESCRIPTION, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = POST_EVENT_HANDLER_PUBLISH_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = POST_EVENT_HANDLER_PUBLISH_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@PostMapping(path = CommonConstants.OP_EVENT_HANDLER_PUBLISH, consumes = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public void publish(@RequestBody final EventPublishRequestDTO request) {
-		logger.debug("publish started ...");
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_PUBLISH;
-	//	checkEventPublishRequestDTO(request, origin);
-		
-		
-	    dataManagerService.publishResponse(request);
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	@ApiOperation(value = POST_EVENT_HANDLER_PUBLISH_AUTH_UPDATE_DESCRIPTION, tags = { CoreCommonConstants.SWAGGER_TAG_PRIVATE })
-	@ApiResponses(value = {
-			@ApiResponse(code = HttpStatus.SC_OK, message = POST_EVENT_HANDLER_PUBLISH_AUTH_UPDATE_HTTP_200_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_BAD_REQUEST, message = POST_EVENT_HANDLER_PUBLISH_AUTH_UPDATE_HTTP_400_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CommonConstants.SWAGGER_HTTP_401_MESSAGE),
-			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CommonConstants.SWAGGER_HTTP_500_MESSAGE)
-	})
-	@PostMapping(path = CommonConstants.OP_EVENT_HANDLER_PUBLISH_AUTH_UPDATE, consumes = MediaType.APPLICATION_JSON_VALUE)
-	@ResponseBody public void publishSubscriberAuthorizationUpdate(@RequestBody final EventPublishRequestDTO request) {
-		logger.debug("publishSubscriberAuthorizationUpdate started ...");
-		
-		final String origin = CommonConstants.EVENT_HANDLER_URI + CommonConstants.OP_EVENT_HANDLER_PUBLISH_AUTH_UPDATE;
-
-		
-	    dataManagerService.publishSubscriberAuthorizationUpdateResponse(request);
-	}
-	
-	*/
 	//=================================================================================================
 	// assistant methods
 
-	//-------------------------------------------------------------------------------------------------	
+	//-------------------------------------------------------------------------------------------------
+	public boolean validateSenML(final Vector<SenML> sml){
+
+	  /* check that v, bv, sv, etc are included only once per object */
+	  Iterator entry = sml.iterator();
+	  while (entry.hasNext()) {
+	    SenML o = (SenML)entry.next();
+	    System.out.println(o.toString()); 
+
+	    int value_count = 0;
+	    if (o.getV() != null)
+	      value_count++;
+	    if (o.getVs() != null)
+	      value_count++;
+	    if (o.getVd() != null)
+	      value_count++;
+	    if (o.getVb() != null)
+	      value_count++;
+
+	    if(value_count > 1 && o.getS() == null)
+	      return false;
+	  } 
+
+	  return true;
+	}	
 }

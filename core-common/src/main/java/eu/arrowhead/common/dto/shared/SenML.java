@@ -20,12 +20,13 @@ public class SenML implements Serializable {
   private Short bver;
   private String n;
   private String u;
-  private Double v;
-  private String vs;
-  private Boolean vb;
-  private Double s;
-  private Double t;
-  private Double ut;
+  private Double v = null;
+  private String vs = null;
+  private Boolean vb = null;
+  private String vd = null;
+  private Double s = null;
+  private Double t = null;
+  private Double ut = null;
 
   //=================================================================================================
   // methods
@@ -36,8 +37,7 @@ public class SenML implements Serializable {
 
   public String toString() {
       Gson gson = new Gson();
-      String json = gson.toJson(this); 
-      return json;
+      return gson.toJson(this);
   }
 
   public void setBn(String bn) {
@@ -48,12 +48,28 @@ public class SenML implements Serializable {
     return bn;
   }
 
+  public void setBu(String bu) {
+    this.bu = bu;
+  }
+
+  public String getBu() {
+    return bu;
+  }
+
   public void setV(Double v) {
     this.v = v;
   }
 
   public Double getV() {
     return v;
+  }
+
+  public void setVs(String vs) {
+    this.vs = vs;
+  }
+
+  public String getVs() {
+    return vs;
   }
 
   public void setVb(Boolean vb) {
@@ -64,12 +80,20 @@ public class SenML implements Serializable {
     return vb;
   }
 
-  public void setVs(String vs) {
-    this.vs = vs;
+  public void setVd(String vd) {
+    this.vd = vd;
   }
 
-  public String getVs() {
-    return vs;
+  public String getVd() {
+    return vd;
+  }
+
+  public void setS(Double s) {
+    this.s = s;
+  }
+
+  public Double getS() {
+    return s;
   }
 
   public void setN(String n) {
@@ -96,13 +120,14 @@ public class SenML implements Serializable {
     return t;
   }
 
-  public void setBu(String bu) {
-    this.bu = bu;
+  public void setUt(Double ut) {
+    this.ut = ut;
   }
 
-  public String getBu() {
-    return bu;
+  public Double getUt() {
+    return ut;
   }
+  
 
   //-------------------------------------------------------------------------------------------------
 }

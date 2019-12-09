@@ -23,8 +23,10 @@ public class ProxyService {
 
     }
 
+
     /**
      * @fn static List<ProxyElement> getAllEndpoints()
+     * @brief Fetches all endpoints and returns a list
      *
      */
     public static List<String> getAllEndpoints() {
@@ -38,8 +40,10 @@ public class ProxyService {
 	return res;
     }
 
+
     /**
      * @fn static List<ProxyElement> getEndpoints(String systemName)
+     * @brief Fetches all service endpoints that belongs to a specific system
      *
      */
     public static ArrayList<ProxyElement> getEndpoints(String systemName) {
@@ -53,12 +57,14 @@ public class ProxyService {
 		res.add(pe);
 	    }
 	}
+
 	return res;
     }
 
+
     /**
      * @fn static boolean addEndpoint(ProxyElement e)
-     * @brief
+     * @brief Adds a newly created Proxy endpoint
      *
      */
     public static boolean addEndpoint(ProxyElement e) {
@@ -66,12 +72,15 @@ public class ProxyService {
 	    if (tmp.serviceName.equals(e.serviceName)) // already exists
 		return false;
 	}
+
 	endpoints.add(e);
 	return true;
     }
 
+
     /**
      * @fn static ProxyElement getEndpoint(String serviceName)
+     * @brief Searches for a Proxy endpoint
      *
      */
     public static ProxyElement getEndpoint(String serviceName) {
@@ -88,17 +97,18 @@ public class ProxyService {
 	return null;
     }
 
+
     /**
      * @fn static boolean updateEndpoint(String serviceName, Vector<SenML> msg)
-     * @brief
+     * @brief Updates a Proxy endpoint
      *
      */
     public static boolean updateEndpoint(String systemName, String serviceName, Vector<SenML> msg) {
 	Iterator<ProxyElement> epi = endpoints.iterator();
 
-	Iterator<SenML> sml = msg.iterator();
-	while(sml.hasNext())
-	    System.out.println(" "+ sml.next());
+	//Iterator<SenML> sml = msg.iterator();
+	//while(sml.hasNext())
+	//    System.out.println(" "+ sml.next());
 
 	while (epi.hasNext()) {
 	    ProxyElement pe = epi.next();
@@ -110,4 +120,5 @@ public class ProxyService {
 	}
 	return false;
     }
+
 }

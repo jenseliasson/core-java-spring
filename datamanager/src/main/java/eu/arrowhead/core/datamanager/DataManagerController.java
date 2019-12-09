@@ -70,7 +70,7 @@ public class DataManagerController {
 	//=================================================================================================
 	// members
 	
-	private static final String PATH_VARIABLE_ID = "id";
+	/*private static final String PATH_VARIABLE_ID = "id";
 
 	private static final String EVENT_HANDLER_MGMT_URI =  CoreCommonConstants.MGMT_URI + "/subscriptions";
 	private static final String EVENTHANLER_BY_ID_MGMT_URI = EVENT_HANDLER_MGMT_URI + "/{" + PATH_VARIABLE_ID + "}";
@@ -110,11 +110,8 @@ public class DataManagerController {
 	private static final String NULL_PARAMETER_ERROR_MESSAGE = " is null.";
 	private static final String NULL_OR_BLANK_PARAMETER_ERROR_MESSAGE = " is null or blank.";
 	private static final String ID_NOT_VALID_ERROR_MESSAGE = " Id must be greater than 0. ";
-	private static final String WRONG_FORMAT_ERROR_MESSAGE = " is in wrong format. ";
+	private static final String WRONG_FORMAT_ERROR_MESSAGE = " is in wrong format. ";*/
 
-	@Value( CoreCommonConstants.$TIME_STAMP_TOLERANCE_SECONDS_WD )
-	private long timeStampTolerance;
-	
 	private final Logger logger = LogManager.getLogger(DataManagerController.class);
 	
 	@Autowired
@@ -137,20 +134,31 @@ public class DataManagerController {
 			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
 	@GetMapping(path = CommonConstants.ECHO_URI)
-	public String echoService() {
+	@ResponseBody public String echoService() {
 		return "Got it!";
 	}
 	
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Test interface to the Historian service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE)
+	})
 	@GetMapping(value= "/historian")
-	public String historianS(
+	@ResponseBody public String historianS(
 			) {
-		System.out.println("DataManager::Historian/");
+		//System.out.println("DataManager::Historian/");
 		return "DataManager::Historian";
 	}
 
+	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Interface to get all services that s specific system has active in the Historian service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
+	@ApiResponses (value = {
+			@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
+			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
+	})
 	@GetMapping(value= "/historian/{system}")
-	public String historianSystemGet(
+	@ResponseBody public String historianSystemGet(
 		@PathVariable(value="system", required=true) String systemName
 		) {
 		System.out.println("DataManager:GET:Historian/"+systemName);
@@ -158,7 +166,7 @@ public class DataManagerController {
 	}
 
 	@PutMapping(value= "/historian/{system}", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public String historianSystemPut(
+	@ResponseBody public String historianSystemPut(
 		@PathVariable(value="system", required=true) String systemName
 		) {
 		System.out.println("DataManager:PUT:Historian/"+systemName);
@@ -166,7 +174,7 @@ public class DataManagerController {
 	}
 
 	@GetMapping(value= "/historian/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
-	public String historianServiceGet(//RequestEntity<String> request /*
+	@ResponseBody public String historianServiceGet(//RequestEntity<String> request /*
 			//@RequestHeader("Content-Type", required=true) String contentType,
 		@PathVariable(value="system", required=true) String systemName,
 		@PathVariable(value="service", required=true) String serviceName
@@ -177,7 +185,7 @@ public class DataManagerController {
 	}
 
 	@PutMapping(value= "/historian/{system}/{service}", consumes = MediaType.APPLICATION_JSON_VALUE)//CommonConstants.DM_HISTORIAN_URI)
-	public String historianServicePut(
+	@ResponseBody public String historianServicePut(
 		@PathVariable(value="system", required=true) String systemName,
 		@PathVariable(value="service", required=true) String serviceName,
 		@RequestBody Vector<SenML> sml
@@ -191,14 +199,15 @@ public class DataManagerController {
 		return "DataManager::Historian";
 	}
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Test interface for the Proxy service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
 		@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
 	@GetMapping(value= "/proxy", produces=MediaType.APPLICATION_JSON_VALUE)
-	public String proxyS() {
-		System.out.println("DataManager::proxy/");
+	@ResponseBody public String proxyS() {
+		//System.out.println("DataManager::proxy/");
 		Gson gson = new Gson();
 
 		List<String> pes = ProxyService.getAllEndpoints();
@@ -207,25 +216,26 @@ public class DataManagerController {
 		answer.add("systems", systemlist);
 
 		String jsonStr = gson.toJson(answer);
-		return jsonStr; //"DataManager::Proxy";
+		return jsonStr;
 	}
 
 
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Interface to get a system's all services in the Proxy service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
 		@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
-	@GetMapping(value= "/proxy/{system}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public String proxySystemGet(
-			@PathVariable(value="system", required=true) String systemName
+	@GetMapping(value= "/proxy/{systemName}", produces = MediaType.APPLICATION_JSON_VALUE)
+	@ResponseBody public String proxySystemGet(
+			@PathVariable(value="systemName", required=true) String systemName
 		) {
-		System.out.println("DataManager:Get:proxy/"+systemName);
+		//System.out.println("DataManager:Get:proxy/"+systemName);
 
 		List<ProxyElement> pes = ProxyService.getEndpoints(systemName);
 		if (pes.size() == 0) {
-			logger.debug("proxy GET to systemName: " + systemName + " not found");
+			//logger.debug("proxy GET to systemName: " + systemName + " not found");
 			throw new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "System not found");
 		}
 
@@ -243,17 +253,18 @@ public class DataManagerController {
 	}
 
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Interface to manage a system's services in the Proxy service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
 		@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
 	@PutMapping(value= "/proxy/{systemName}", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public String proxySystemPut(
+	@ResponseBody public String proxySystemPut(
 			@PathVariable(value="systemName", required=true) String systemName,
 			@RequestBody String requestBody
 		) {
-		System.out.println("DataManager:Put:proxy/"+systemName);
+		//System.out.println("DataManager:Put:proxy/"+systemName);
 		JsonParser parser= new JsonParser();
 		JsonObject obj = null;
 		try {
@@ -299,7 +310,7 @@ public class DataManagerController {
 					throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "createResult: Already exists");
 				}
 			}
-			logger.info("Not found, create it: " + srvName);
+			//logger.info("Not found, create it: " + srvName);
 
 			/* create the service */
 			boolean ret = ProxyService.addEndpoint(new ProxyElement(systemName, srvName));
@@ -308,7 +319,7 @@ public class DataManagerController {
 			} else { 
 				throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "createResult: Already exists");
 			}
-		} else if(op.equals("delete")){
+		} else if(op.equals("delete")){ //NOT SUPPORTED YET
 			String srvName = obj.get("srvName").getAsString();
 			String srvType = obj.get("srvType").getAsString();
 			logger.info("Delete Service: "+srvName+" of type: "+srvType+" for: " + systemName);
@@ -320,17 +331,18 @@ public class DataManagerController {
 		}
 
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Interface to get a system's last service data", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
 		@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
-	@GetMapping(value= "/proxy/{system}/{service}")//CommonConstants.DM_PROXY_URI)
-	public String proxyServiceGet(
-			@PathVariable(value="system", required=true) String systemName,
-			@PathVariable(value="service", required=true) String serviceName
+	@GetMapping(value= "/proxy/{systemName}/{serviceName}")//CommonConstants.DM_PROXY_URI)
+	@ResponseBody public String proxyServiceGet(
+			@PathVariable(value="systemName", required=true) String systemName,
+			@PathVariable(value="serviceName", required=true) String serviceName
 			) {
-			System.out.println("DataManager:Get:Proxy/"+systemName+"/"+serviceName);
+			//System.out.println("DataManager:Get:Proxy/"+systemName+"/"+serviceName);
 
 			int statusCode = 0;
 			ProxyElement pe = ProxyService.getEndpoint(serviceName);
@@ -342,23 +354,24 @@ public class DataManagerController {
 
 			Iterator i = pe.msg.iterator();
 			String senml = "";
-			while (i.hasNext()) {
+			/*while (i.hasNext()) {
 				senml += ((i.next().toString())+"\n");
 				System.out.println("\t"+senml);
-			}
-			return pe.msg.toString(); //senml;
+			}*/
+			return pe.msg.toString();
 			}
 
 	//-------------------------------------------------------------------------------------------------
+	@ApiOperation(value = "Interface to update a system's last service data", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
 		@ApiResponse(code = HttpStatus.SC_OK, message = CoreCommonConstants.SWAGGER_HTTP_200_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 		@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
-	@PutMapping(value= "/proxy/{system}/{service}")//CommonConstants.DM_PROXY_URI)
-	public String proxyPut(
-			@PathVariable(value="system", required=true) String systemName,
-			@PathVariable(value="service", required=true) String serviceName,
+	@PutMapping(value= "/proxy/{systemName}/{serviceName}")//CommonConstants.DM_PROXY_URI)
+	@ResponseBody public String proxyPut(
+			@PathVariable(value="systemName", required=true) String systemName,
+			@PathVariable(value="serviceName", required=true) String serviceName,
 			@RequestBody Vector<SenML> sml
 			) {
 		ProxyElement pe = ProxyService.getEndpoint(serviceName);
@@ -375,7 +388,7 @@ public class DataManagerController {
 		String jsonret = "{\"rc\": "+ret+"}";
 		return jsonret;
 	}
-
+/*
 
 	//-------------------------------------------------------------------------------------------------
 	@ApiOperation(value = GET_EVENT_HANDLER_MGMT_DESCRIPTION, response = SubscriptionListResponseDTO.class, tags = { CoreCommonConstants.SWAGGER_TAG_MGMT })
@@ -552,38 +565,9 @@ public class DataManagerController {
 	    dataManagerService.publishSubscriberAuthorizationUpdateResponse(request);
 	}
 	
+	*/
 	//=================================================================================================
 	// assistant methods
 
 	//-------------------------------------------------------------------------------------------------	
-	private void checkSubscriptionRequestDTO( final SubscriptionRequestDTO request, final String origin) {
-		logger.debug("checkSubscriptionRequestDTO started ...");
-		
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	private void checkSystemRequestDTO(final SystemRequestDTO system, final String origin) {
-		logger.debug("checkSystemRequestDTO started...");
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	private void checkEventPublishRequestDTO(final EventPublishRequestDTO request, final String origin) {
-		logger.debug("checkEventPublishRequestDTO started ...");
-		
-		
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	// This method may CHANGE the content of EventPublishRequestDTO
-	private void validateTimeStamp(final EventPublishRequestDTO request, final String origin) {
-		logger.debug("validateTimeStamp started ...");
-		
-	}
-	
-	//-------------------------------------------------------------------------------------------------
-	private void checkUnsubscribeParameters( final String eventType, final String subscriberName, final String subscriberAddress, final int subscriberPort, final String origin) {
-		logger.debug("checkUnsubscribeParameters started...");
-		
-	}
-
 }

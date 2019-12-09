@@ -10,6 +10,11 @@ public class ProxyElement {
   public String serviceType = null;    // _Tempreatre._http._tcp. etc...
   public Vector<SenML> msg = null;
 
+
+  /**
+   * @fn public ProxyElement(String systemName, String serviceName)
+   * @brief creates a new ProxyElement 
+   */
   public ProxyElement(String systemName, String serviceName) {
     this.systemName = new String(systemName);
     this.serviceName = new String(serviceName);
@@ -18,7 +23,7 @@ public class ProxyElement {
 
 
   /**
-   * @fn public ProxyElement(String name, Vector<SenMLMessage> senml)
+   * @fn public ProxyElement(String systemName, String serviceName, Vector<SenMLMessage> senml)
    * @brief creates a new ProxyElement from a SenML message
    */
   public ProxyElement(String systemName, String serviceName, Vector<SenML> senml) {

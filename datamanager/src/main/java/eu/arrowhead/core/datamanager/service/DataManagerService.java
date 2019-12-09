@@ -54,7 +54,7 @@ public class DataManagerService {
 	
 	//=================================================================================================
 	// methods
-
+/*
 	//-------------------------------------------------------------------------------------------------
 	public void subscribe( final SubscriptionRequestDTO request) {
 		logger.debug("subscribe started ...");
@@ -349,4 +349,5 @@ public class DataManagerService {
 		logger.debug("checkUnsubscribeParameters started...");
 		
 	}
+	*/
 }

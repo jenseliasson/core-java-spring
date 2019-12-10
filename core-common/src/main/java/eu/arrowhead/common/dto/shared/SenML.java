@@ -8,6 +8,8 @@ import com.google.gson.Gson;
 
 import eu.arrowhead.common.CommonConstants;
 
+//https://tools.ietf.org/html/rfc8428
+
 public class SenML implements Serializable {
 
   //=================================================================================================
@@ -34,12 +36,7 @@ public class SenML implements Serializable {
   //-------------------------------------------------------------------------------------------------
   public SenML() {
   }
-
-  public String toString() {
-      Gson gson = new Gson();
-      return gson.toJson(this);
-  }
-
+ 
   public void setBn(String bn) {
     this.bn = bn;
   }
@@ -48,12 +45,60 @@ public class SenML implements Serializable {
     return bn;
   }
 
+  public void setBt(Double bt) {
+    this.bt = bt;
+  }
+
+  public Double getBt() {
+    return bt;
+  }
+
   public void setBu(String bu) {
     this.bu = bu;
   }
 
   public String getBu() {
     return bu;
+  }
+
+  public void setBv(Double bv) {
+    this.bv = bv;
+  }
+
+  public Double getBv() {
+    return bv;
+  }
+
+  public void setBs(Double bs) {
+    this.bs = bs;
+  }
+
+  public Double getBs() {
+    return bs;
+  }
+
+  public void setBver(Short bver) {
+    this.bver = bver;
+  }
+
+  public Short getBver() {
+    return bver;
+  }
+
+  public void setN(String n) {
+    this.n = n;
+  }
+
+  public String getN() {
+    return n;
+  }
+
+  public String getU() {
+    return u;
+  }
+
+  public void setU(String u) {
+    this.u = u;
   }
 
   public void setV(Double v) {
@@ -95,23 +140,7 @@ public class SenML implements Serializable {
   public Double getS() {
     return s;
   }
-
-  public void setN(String n) {
-    this.n = n;
-  }
-
-  public String getN() {
-    return n;
-  }
-
-  public void setBt(Double bt) {
-    this.bt = bt;
-  }
-
-  public Double getBt() {
-    return bt;
-  }
-
+ 
   public void setT(Double t) {
     this.t = t;
   }
@@ -128,6 +157,11 @@ public class SenML implements Serializable {
     return ut;
   }
   
+  public String toString() {
+      Gson gson = new Gson();
+      return gson.toJson(this);
+  }
+
 
   //-------------------------------------------------------------------------------------------------
 }

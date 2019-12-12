@@ -1,6 +1,10 @@
 package eu.arrowhead.core.datamanager;
 
 import java.util.List;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -12,6 +16,8 @@ import eu.arrowhead.common.ApplicationInitListener;
 import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.CoreCommonConstants;
 import eu.arrowhead.common.core.CoreSystemService;
+
+import eu.arrowhead.core.datamanager.service.HistorianService;
 
 @Component
 public class DataManagerApplicationInitListener extends ApplicationInitListener {
@@ -41,17 +47,27 @@ public class DataManagerApplicationInitListener extends ApplicationInitListener 
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	protected void customInit(final ContextRefreshedEvent event) {				
+		Properties prop = null;
 		logger.debug("customInit started...");
-		
-		
+		try (InputStream input = new FileInputStream("application.properties")) {
+			prop = new Properties();
+			prop.load(input);
+		} catch (IOException ex) {
+			ex.printStackTrace();
+		}
+		HistorianService.Init(prop);
+
+		System.out.println("Init here");
+
+
 	}
-	
+
 	//-------------------------------------------------------------------------------------------------
 	@Override
 	protected void customDestroy() {				
 		logger.debug("customDestroy started...");
-		
-		
+
+
 	}
-	
+
 }

@@ -48,6 +48,7 @@ import eu.arrowhead.core.datamanager.database.service.DataManagerDBService;
 import eu.arrowhead.core.datamanager.service.DataManagerService;
 import eu.arrowhead.core.datamanager.service.ProxyService;
 import eu.arrowhead.core.datamanager.service.ProxyElement;
+import eu.arrowhead.core.datamanager.service.HistorianService;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -121,6 +122,9 @@ public class DataManagerController {
 	ProxyService proxyService;
 
 	@Autowired
+	HistorianService historianService;
+
+	@Autowired
 	DataManagerDBService dataManagerDBService;
 	
 	//=================================================================================================
@@ -147,7 +151,15 @@ public class DataManagerController {
 	@ResponseBody public String historianS(
 			) {
 		//System.out.println("DataManager::Historian/");
-		return "DataManager::Historian";
+		Gson gson = new Gson();
+
+		ArrayList<String> systems = HistorianService.getSystems();
+		JsonObject answer = new JsonObject();
+		JsonElement systemlist = gson.toJsonTree(systems);
+		answer.add("systems", systemlist);
+
+		String jsonStr = gson.toJson(answer);
+		return jsonStr; //"DataManager::Historian";
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -157,21 +169,49 @@ public class DataManagerController {
 			@ApiResponse(code = HttpStatus.SC_UNAUTHORIZED, message = CoreCommonConstants.SWAGGER_HTTP_401_MESSAGE),
 			@ApiResponse(code = HttpStatus.SC_INTERNAL_SERVER_ERROR, message = CoreCommonConstants.SWAGGER_HTTP_500_MESSAGE)
 	})
-	@GetMapping(value= "/historian/{system}")
+	@GetMapping(value= "/historian/{systemName}")
 	@ResponseBody public String historianSystemGet(
-		@PathVariable(value="system", required=true) String systemName
+		@PathVariable(value="systemName", required=true) String systemName
 		) {
 		System.out.println("DataManager:GET:Historian/"+systemName);
-		return "DataManager::Historian/" + systemName;
+		return historianSystemPut(systemName, "{\"op\": \"list\"}");
+		//return "DataManager::Historian/" + systemName;
 	}
 
-	@PutMapping(value= "/historian/{system}", consumes = MediaType.APPLICATION_JSON_VALUE)
+	@PutMapping(value= "/historian/{systemName}", consumes = MediaType.APPLICATION_JSON_VALUE)
 	@ResponseBody public String historianSystemPut(
-		@PathVariable(value="system", required=true) String systemName
+			@PathVariable(value="systemName", required=true) String systemName,
+			@RequestBody String requestBody
 		) {
 		System.out.println("DataManager:PUT:Historian/"+systemName);
+
+		JsonParser parser= new JsonParser();
+		JsonObject obj = null;
+		try {
+			obj = parser.parse(requestBody).getAsJsonObject();
+		} catch(Exception je){
+			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "malformed request");
+		}
+
+		String op = obj.get("op").getAsString();
+		if(op.equals("list")) {
+			//System.out.println("OP: list");
+			ArrayList<String> services = HistorianService.getServicesFromSystem(systemName);
+			for (String srv: services) {
+			  System.out.println(":" +srv);
+			}
+			Gson gson = new Gson();
+			JsonObject answer = new JsonObject();
+			JsonElement servicelist = gson.toJsonTree(services);
+			answer.add("services", servicelist);
+			String jsonStr = gson.toJson(answer);
+			System.out.println("Asnwer: "+jsonStr);
+
+			return jsonStr; //Response.status(Status.OK).entity(jsonStr).type(MediaType.APPLICATION_JSON).build();
+		}
+
 		return "DataManager::Historian/" + systemName;
-	}
+		}
 
 	@GetMapping(value= "/historian/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
 	@ResponseBody public String historianServiceGet(//RequestEntity<String> request /*
@@ -184,10 +224,10 @@ public class DataManagerController {
 		return "DataManager::Historian";
 	}
 
-	@PutMapping(value= "/historian/{system}/{service}", consumes = MediaType.APPLICATION_JSON_VALUE)//CommonConstants.DM_HISTORIAN_URI)
+	@PutMapping(value= "/historian/{systemName}/{serviceName}", consumes = MediaType.APPLICATION_JSON_VALUE)//CommonConstants.DM_HISTORIAN_URI)
 	@ResponseBody public String historianServicePut(
-		@PathVariable(value="system", required=true) String systemName,
-		@PathVariable(value="service", required=true) String serviceName,
+		@PathVariable(value="systemName", required=true) String systemName,
+		@PathVariable(value="serviceName", required=true) String serviceName,
 		@RequestBody Vector<SenML> sml
 		) {
 		System.out.println("DataManager:Put:Historian/"+systemName+"/"+serviceName);
@@ -196,8 +236,24 @@ public class DataManagerController {
             	  System.out.println(entry.next().toString()); 
       		} 
 
-		return "DataManager::Historian";
-	}
+		boolean statusCode = HistorianService.createEndpoint(serviceName);
+		logger.info("Historian PUT for system '"+systemName+"', service '"+serviceName+"'"); 
+
+		SenML head = sml.firstElement();
+		if(head.getBt() == null)
+			head.setBt((double)System.currentTimeMillis() / 1000.0);
+
+		for(SenML s: sml) {
+			//System.out.println("object" + s.toString());
+			if(s.getT() == null && s.getBt() != null)
+				s.setT(0.0);
+		} 
+		statusCode = HistorianService.updateEndpoint(serviceName, sml);
+
+		String jsonret = "{\"p\": "+ 0 +",\"x\": 0}";
+		//return Response.ok(jsonret, MediaType.APPLICATION_JSON).build();
+		return jsonret;
+		}
 	//-------------------------------------------------------------------------------------------------
 	@ApiOperation(value = "Test interface for the Proxy service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {

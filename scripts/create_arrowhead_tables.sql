@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS `dmhist_services` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
   `system_name` varchar(255) NOT NULL,
   `service_name` varchar(255) UNIQUE NOT NULL,
-  `service_type` varchar(255) NOT NULL,
+  `service_type` varchar(255),
   last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

@@ -335,18 +335,29 @@ public class DataManagerController {
             	  System.out.println(entry.next().toString()); 
       		} 
 
-		boolean statusCode = HistorianService.createEndpoint(serviceName);
+		boolean statusCode = HistorianService.createEndpoint(systemName, serviceName);
 		logger.info("Historian PUT for system '"+systemName+"', service '"+serviceName+"'"); 
 
-		SenML head = sml.firstElement();
+		if (validateSenML(sml) == false) {
+			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Invalid SenML");
+		}
+
+		//SenML head = sml.firstElement();
 		//if(head.getBt() == null)
 		//	head.setBt((double)System.currentTimeMillis() / 1000.0);
 
+		/*String bu = null;
 		for(SenML s: sml) {
+			if (s.getBu() != null) {
+				bu = s.getBu();
+			}
+			if (s.getU() != null) {
+				s.setU(bu);
+			}
 			//System.out.println("object" + s.toString());
 			//if(s.getT() == null && s.getBt() != null)
 			//	s.setT(0.0);
-		} 
+		}*/ 
 		statusCode = HistorianService.updateEndpoint(serviceName, sml);
 
 		String jsonret = "{\"x\": 0}";
@@ -535,7 +546,7 @@ public class DataManagerController {
 		}
 
 		if (validateSenML(sml) == false) {
-			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Invalid SenML (not compliant to RFC 8428)");
+			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Invalid SenML");
 		}
 
 		boolean statusCode = ProxyService.updateEndpoint(systemName, serviceName, sml);
@@ -554,10 +565,42 @@ public class DataManagerController {
 	//-------------------------------------------------------------------------------------------------
 	public boolean validateSenML(final Vector<SenML> sml){
 
-	  /* check that v, bv, sv, etc are included only once per object */
+	  /* check that bn, bt and bu are included only once, and in the first object */
 	  Iterator entry = sml.iterator();
+	  int bnc=0, btc=0, buc=0;
 	  while (entry.hasNext()) {
 	    SenML o = (SenML)entry.next();
+	    if (o.getBn() != null)
+	      bnc++;
+	    if (o.getBt() != null)
+	      btc++;
+	    if (o.getBu() != null)
+	      buc++;
+	  }
+
+	System.out.println("bnc: "+bnc+", btc: "+btc+", buc: "+buc);
+
+	  /* bu can only exist once. bt can only exist one, bu can exist 0 or 1 times */
+	  if (bnc != 1 || btc != 1 || buc > 1)
+		  return false;
+
+	  /* bn must exist in [0] */
+	  SenML o = (SenML)sml.get(0);
+	  if (o.getBn() == null)
+		  return false;
+
+	  /* bt must exist in [0] */
+	  if (o.getBt() == null)
+		  return false;
+
+	  /* bu must exist in [0], if it exists */
+	  if (o.getBu() == null && buc == 1)
+		  return false;
+
+	  /* check that v, bv, sv, etc are included only once per object */
+	  entry = sml.iterator();
+	  while (entry.hasNext()) {
+	    o = (SenML)entry.next();
 	    System.out.println(o.toString()); 
 
 	    int value_count = 0;

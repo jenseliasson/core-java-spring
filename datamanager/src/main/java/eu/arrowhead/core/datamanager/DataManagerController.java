@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.util.MultiValueMap;
 
 import eu.arrowhead.common.CommonConstants;
 import eu.arrowhead.common.CoreCommonConstants;
@@ -208,28 +209,126 @@ public class DataManagerController {
 			System.out.println("Asnwer: "+jsonStr);
 
 			return jsonStr; //Response.status(Status.OK).entity(jsonStr).type(MediaType.APPLICATION_JSON).build();
-		}
+		} else if(op.equals("create")){
+			//System.out.println("OP: CREATE");
+			String srvName = obj.get("srvName").getAsString();
+			String srvType = obj.get("srvType").getAsString();
+			System.out.println("Create SRV: "+srvName+" of type: "+srvType+" for: " + systemName);
 
-		return "DataManager::Historian/" + systemName;
+			/* check if service already exists */
+			ArrayList<String> services = HistorianService.getServicesFromSystem(systemName);
+			for (String srv: services) {
+				if(srv.equals(srvName)){
+					logger.info("  service:" +srv + " already exists");
+					Gson gson = new Gson();
+					JsonObject answer = new JsonObject();
+					answer.addProperty("createResult", "Already exists");
+					String jsonStr = gson.toJson(answer);
+					//return Response.status(Status.CONFLICT).entity(jsonStr).type(MediaType.APPLICATION_JSON).build();
+					throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, jsonStr);
+				}
+			}
+
+			/* create the service */
+			boolean ret = HistorianService.addServiceForSystem(systemName, srvName, srvType);
+			if (ret==true){
+				return "{\"x\": 0}"; //Response.status(Status.CREATED).entity("{}").type(MediaType.APPLICATION_JSON).build();
+			} else {
+				//return Response.status(500).entity("{\"x\": \"Could not create service\"}").type(MediaType.APPLICATION_JSON).build();
+				throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "{\"x\": \"Could not create service\"}");
+			}
+
 		}
+		return "{\"x\": -1, \"xs\": \"Unknown command\"}"; //make this a real object!
+	}
 
 	@GetMapping(value= "/historian/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
 	@ResponseBody public String historianServiceGet(//RequestEntity<String> request /*
 			//@RequestHeader("Content-Type", required=true) String contentType,
 		@PathVariable(value="system", required=true) String systemName,
-		@PathVariable(value="service", required=true) String serviceName
+		@PathVariable(value="service", required=true) String serviceName,
+		@RequestParam MultiValueMap<String, String> params/*
+		@RequestParam(value="count", required=false) Integer count,
+		@RequestParam(value="sig0", required=false) String sig0,
+		@RequestParam(value="sig1", required=false) String sig1,
+		@RequestParam(required=false) String sig2,
+		@RequestParam(required=false) String sig3,
+		@RequestParam(required=false) String sig4,
+		@RequestParam(required=false) String sig5,
+		@RequestParam(required=false) String sig6,
+		@RequestParam(required=false) String ts,
+		@RequestParam(required=false) String tsop*/
 		) {
 		System.out.println("DataManager:Get:Historian/"+systemName+"/"+serviceName);
 
-		return "DataManager::Historian";
+		int statusCode = 0;
+		
+		long timestamp;
+		int count = 1;
+		String ts=null, tsop=null;
+
+		logger.info("Historian GET for system '"+systemName+"', service '"+serviceName+"'"); 
+
+		Vector<String> signals = new Vector<String>();
+		Iterator<String> it = params.keySet().iterator();
+		int sigCnt = 0;
+		while(it.hasNext()){
+			String par = (String)it.next();
+			System.out.println("Key: " + par + " value: " + params.getFirst(par) + "("+("sig"+sigCnt)+")");
+			if (par.equals("count")) {
+				count = Integer.parseInt(params.getFirst(par));
+			} else if (par.equals("ts")) {
+				ts = par;
+			} else if (par.equals("tsop")) {
+				tsop = par;
+			} else if (par.equals("sig"+sigCnt)) {
+				signals.add(params.getFirst(par));
+				sigCnt++;
+			}
+		}
+		logger.info("getData requested with count: " + count);
+
+		Vector<SenML> ret = null;
+
+		// check is timestamp should be used
+		if (ts == null) {
+			timestamp = -1;
+		} else {
+			timestamp = Long.parseLong(ts);
+			//check timestampOperation, if null, assume greaterand equals ">="
+			if (tsop == null)
+			       tsop = "ge"; // greater than and equal
+			switch(tsop) {
+				case "ge":  // greater than and equal
+				case "gt":  // greaten than
+				case "le":  // less than or equal
+				case "lt":  // less than
+				case "eg":  // equal
+					tsop = tsop;
+				default:
+					String jsonerr = "{\"x\": -1, \"xs\": \"Illegal timestamp comparison\"}";
+					return jsonerr;
+			}
+		}
+
+		if(signals.size() == 0) {
+			ret = HistorianService.fetchEndpoint(serviceName, timestamp, tsop, count);
+		} else {
+			ret = HistorianService.fetchEndpoint(serviceName, timestamp, tsop, count, signals);
+		}
+
+		if (ret == null)
+			return "[]";
+
+		return ret.toString();
 	}
 
 	@PutMapping(value= "/historian/{systemName}/{serviceName}", consumes = MediaType.APPLICATION_JSON_VALUE)//CommonConstants.DM_HISTORIAN_URI)
 	@ResponseBody public String historianServicePut(
-		@PathVariable(value="systemName", required=true) String systemName,
-		@PathVariable(value="serviceName", required=true) String serviceName,
-		@RequestBody Vector<SenML> sml
-		) {
+	@PathVariable(value="systemName", required=true) String systemName,
+	@PathVariable(value="serviceName", required=true) String serviceName,
+	@RequestBody Vector<SenML> sml
+	) {
 		System.out.println("DataManager:Put:Historian/"+systemName+"/"+serviceName);
 		Iterator entry = sml.iterator();
 		while (entry.hasNext()) { 
@@ -240,20 +339,20 @@ public class DataManagerController {
 		logger.info("Historian PUT for system '"+systemName+"', service '"+serviceName+"'"); 
 
 		SenML head = sml.firstElement();
-		if(head.getBt() == null)
-			head.setBt((double)System.currentTimeMillis() / 1000.0);
+		//if(head.getBt() == null)
+		//	head.setBt((double)System.currentTimeMillis() / 1000.0);
 
 		for(SenML s: sml) {
 			//System.out.println("object" + s.toString());
-			if(s.getT() == null && s.getBt() != null)
-				s.setT(0.0);
+			//if(s.getT() == null && s.getBt() != null)
+			//	s.setT(0.0);
 		} 
 		statusCode = HistorianService.updateEndpoint(serviceName, sml);
 
-		String jsonret = "{\"p\": "+ 0 +",\"x\": 0}";
-		//return Response.ok(jsonret, MediaType.APPLICATION_JSON).build();
+		String jsonret = "{\"x\": 0}";
 		return jsonret;
-		}
+	}
+
 	//-------------------------------------------------------------------------------------------------
 	@ApiOperation(value = "Test interface for the Proxy service", response = String.class, tags = { CoreCommonConstants.SWAGGER_TAG_CLIENT })
 	@ApiResponses (value = {
@@ -320,7 +419,7 @@ public class DataManagerController {
 			@PathVariable(value="systemName", required=true) String systemName,
 			@RequestBody String requestBody
 		) {
-		//System.out.println("DataManager:Put:proxy/"+systemName);
+		System.out.println("DataManager:Put:proxy/"+systemName);
 		JsonParser parser= new JsonParser();
 		JsonObject obj = null;
 		try {
@@ -398,7 +497,7 @@ public class DataManagerController {
 			@PathVariable(value="systemName", required=true) String systemName,
 			@PathVariable(value="serviceName", required=true) String serviceName
 			) {
-			//System.out.println("DataManager:Get:Proxy/"+systemName+"/"+serviceName);
+			System.out.println("DataManager:Get:Proxy/"+systemName+"/"+serviceName);
 
 			int statusCode = 0;
 			ProxyElement pe = ProxyService.getEndpoint(serviceName);

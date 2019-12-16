@@ -268,6 +268,25 @@ CREATE TABLE IF NOT EXISTS `subscription_publisher_connection` (
   CONSTRAINT `system_constraint` FOREIGN KEY (`system_id`) REFERENCES `system_` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- DataManager
+CREATE TABLE IF NOT EXISTS `dmhist_services` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `system_name` varchar(255) NOT NULL,
+  `service_name` varchar(255) UNIQUE NOT NULL,
+  `service_type` varchar(255) NOT NULL,
+  last_update timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `dmhist_messages` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `did` bigint(20) NOT NULL,
+  `ts` bigint(20) UNSIGNED NOT NULL,
+  `msg` BLOB NOT NULL,
+  `datastored` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 -- Choreographer
 
 CREATE TABLE IF NOT EXISTS `choreographer_action_plan` (

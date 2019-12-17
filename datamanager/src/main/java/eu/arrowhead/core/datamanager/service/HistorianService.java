@@ -276,20 +276,32 @@ public class HistorianService {
 	public static boolean updateEndpoint(String name, Vector<SenML> msg) {
 	  boolean ret = false;
 
+	  double maxTs = maxTs(msg);
+	  double minTs = minTs(msg);
+	  System.out.println("bt(msg): "+(msg.get(0).getBt())+", minTs(msg): "+minTs+", maxTs(msg): " + maxTs);
+
 	  Connection conn = null;
 	  try {
 	    conn = getConnection();
 	    int id = serviceToID(name, conn);
 	    if (id != -1) {
 	      Statement stmt = conn.createStatement();
-	      String sql = "INSERT INTO dmhist_messages(did, ts, msg, datastored) VALUES("+id+", 0, '"+msg.toString()+"',NOW());"; //how to escape "
-	      //System.out.println(sql);
+	      String sql = "INSERT INTO dmhist_messages(sid, bt, mint, maxt, msg, datastored) VALUES("+id+", "+msg.get(0).getBt()+","+minTs+", "+maxTs+", '"+msg.toString()+"',NOW());"; //how to escape "
+	      System.out.println(sql);
 	      int mid = stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
 	      ResultSet rs = stmt.getGeneratedKeys();
 	      rs.next();
 	      mid = rs.getInt(1);
 	      rs.close();
 	      stmt.close();
+
+	      // that was the entire message, now insert each individual JSON object in the message
+	      for (SenML m : msg) {
+		sql = "INSERT INTO dmhist_objects(mid, t, obj) VALUES("+mid+", "+m.getT()+",´"+m.toString()+"');"; //how to escape "
+		System.out.println(sql);
+
+	      }
+
 	    } else {
 	    }
 	  } catch (SQLException e) {
@@ -315,7 +327,7 @@ public class HistorianService {
 	  try {
 	    conn = getConnection();
 	    int id = serviceToID(name, conn);
-	    System.out.println("Got id of: " + id);
+	    //System.out.println("Got id of: " + id);
 	    String signalss = "";
 	    for (String sig: signals) {
 	      signalss += ("'"+sig + "',");
@@ -325,7 +337,20 @@ public class HistorianService {
 
 	    if (id != -1) {
 	      Statement stmt = conn.createStatement();
-	      String sql = "SELECT * FROM dmhist_messages WHERE did="+id+" ORDER BY datastored DESC;";
+
+	      String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
+	      if (ts != -1 && tsop != null) {
+		switch(tsop){
+		  case "ge":
+		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored >= "+ts+" ORDER BY datastored DESC;";
+
+		    break;
+		  case "eq":
+		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored="+ts+" ORDER BY datastored DESC;";
+		    break;
+		}
+	      }
+	      //String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
 	      System.out.println(sql);
 	      ResultSet rs = stmt.executeQuery(sql);
 
@@ -431,13 +456,24 @@ public class HistorianService {
 	    //System.out.println("Got id of: " + id);
 	    if (id != -1) {
 	      Statement stmt = conn.createStatement();
-	      String sql = "SELECT * FROM dmhist_messages WHERE did="+id+" ORDER BY datastored DESC LIMIT "+count+";";
-	      //System.out.println(sql);
+	      String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
+	      if (ts != -1 && tsop != null) {
+		switch(tsop){
+		  case "ge":
+		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored >= "+ts+" ORDER BY datastored DESC;";
+		    break;
+		  case "eq":
+		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored="+ts+" ORDER BY datastored DESC;";
+		    break;
+		}
+	      }
+	      //String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
+	      System.out.println(sql);
 	      ResultSet rs = stmt.executeQuery(sql);
 
 	      String msg = "";
 	      Vector<SenML> messages = new Vector<SenML>(); 
-	      while(rs.next() == true) {
+	      while(rs.next() == true && count > 0) {
 		msg = rs.getString("msg");
 		//System.out.println("###\n"+ msg + "###");
 		Gson gson = new Gson();
@@ -449,39 +485,44 @@ public class HistorianService {
 		    //m.setT(sm.getBt()); //System.out.println("bt is NULL" );
 
 		  messages.add(m);
+		  count--;
 		}
 	      }
 
 	      rs.close();
 	      stmt.close();
 
-	      //update bn fields (i.e. remove if the same as the first
-	      String startbn = ((SenML)messages.firstElement()).getBn();
-	      for (int i = 1; i< messages.size(); i++) {
-		SenML m = (SenML)messages.get(i);
-		//System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
-		if (startbn.equals(m.getBn()))
-		  m.setBn(null);
-	      }
+	      if (messages.size() > 0) {
 
-	      //recalculate a bt time and update all relative timestamps
-	      Double startbt = ((SenML)messages.firstElement()).getBt();
-	      for (SenML m : messages) {
+		//update bn fields (i.e. remove if the same as the first
+		String startbn = ((SenML)messages.firstElement()).getBn();
+		for (int i = 1; i< messages.size(); i++) {
+		  SenML m = (SenML)messages.get(i);
+		  //System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
+		  if (startbn.equals(m.getBn()))
+		    m.setBn(null);
+		}
+
+		//recalculate a bt time and update all relative timestamps
+		Double startbt = ((SenML)messages.firstElement()).getBt();
+		for (SenML m : messages) {
 		  //System.out.println("\t" + m.toString());
 		  if (m.getT() != null)
 		    m.setT(m.getT()-startbt);
-	      }
-
-	      // update unit tags
-	      String startbu = ((SenML)messages.firstElement()).getBu();
-	      if (startbu != null) {
-		for (SenML m : messages) {
-		  try {
-		    if (m.getU().equals(startbu)){
-		      m.setU(null);
-		    }
-		  } catch(Exception e){}
 		}
+
+		// update unit tags
+		String startbu = ((SenML)messages.firstElement()).getBu();
+		if (startbu != null) {
+		  for (SenML m : messages) {
+		    try {
+		      if (m.getU().equals(startbu)){
+			m.setU(null);
+		      }
+		    } catch(Exception e){}
+		  }
+		}
+
 	      }
 
 	      return messages;
@@ -493,11 +534,39 @@ public class HistorianService {
 	    try{
 	      closeConnection(conn);
 	    } catch(Exception e){}
-	  
+
 	  }
 
 	  return null;
 	}
 
+	//returns largest (newest) timestamp value
+	private static double maxTs(Vector<SenML> msg) {
+	  double bt = msg.get(0).getBt();
+	  double max = bt;
+	  for (SenML m : msg) {
 
+	    if (m.getT() != null) {
+	      if ((m.getT() + bt) > max )
+		max = m.getT() + bt;
+	    }
+	  }
+
+	  return max;
+	}
+
+	//returns smallest (oldest) timestamp value
+	private static double minTs(Vector<SenML> msg) {
+	  double bt = msg.get(0).getBt();
+	  double min = bt;
+	  for (SenML m : msg) {
+
+	    if (m.getT() != null) {
+	      if ((m.getT() + bt) < min )
+		min = m.getT() + bt;
+	    }
+	  }
+
+	  return min;
+	}
 }

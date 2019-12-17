@@ -264,9 +264,9 @@ public class DataManagerController {
 			if (par.equals("count")) {
 				count = Integer.parseInt(params.getFirst(par));
 			} else if (par.equals("ts")) {
-				ts = par;
+				ts = params.getFirst(par);
 			} else if (par.equals("tsop")) {
-				tsop = par;
+				tsop = params.getFirst(par);
 			} else if (par.equals("sig"+sigCnt)) {
 				signals.add(params.getFirst(par));
 				sigCnt++;
@@ -291,6 +291,7 @@ public class DataManagerController {
 				case "lt":  // less than
 				case "eq":  // equal
 					tsop = tsop;
+					break;
 				default:
 					String jsonerr = "{\"x\": -1, \"xs\": \"Illegal timestamp comparison\"}";
 					return jsonerr;

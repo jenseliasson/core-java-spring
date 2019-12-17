@@ -280,11 +280,14 @@ CREATE TABLE IF NOT EXISTS `dmhist_services` (
 
 CREATE TABLE IF NOT EXISTS `dmhist_messages` (
   `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `did` bigint(20) NOT NULL,
-  `ts` bigint(20) UNSIGNED NOT NULL,
+  `sid` bigint(20) NOT NULL,
+  `bt` bigint(20) UNSIGNED NOT NULL,
+  `mint` bigint(20) UNSIGNED NOT NULL,
+  `maxt` bigint(20) UNSIGNED NOT NULL,
   `msg` BLOB NOT NULL,
   `datastored` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT `service_id_constr` FOREIGN KEY (`sid`) REFERENCES `dmhist_services` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 -- Choreographer

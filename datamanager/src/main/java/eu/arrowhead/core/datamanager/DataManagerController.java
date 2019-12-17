@@ -160,7 +160,7 @@ public class DataManagerController {
 		answer.add("systems", systemlist);
 
 		String jsonStr = gson.toJson(answer);
-		return jsonStr; //"DataManager::Historian";
+		return jsonStr;
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -176,7 +176,6 @@ public class DataManagerController {
 		) {
 		System.out.println("DataManager:GET:Historian/"+systemName);
 		return historianSystemPut(systemName, "{\"op\": \"list\"}");
-		//return "DataManager::Historian/" + systemName;
 	}
 
 	@PutMapping(value= "/historian/{systemName}", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -198,22 +197,22 @@ public class DataManagerController {
 		if(op.equals("list")) {
 			//System.out.println("OP: list");
 			ArrayList<String> services = HistorianService.getServicesFromSystem(systemName);
-			for (String srv: services) {
-			  System.out.println(":" +srv);
-			}
+			//for (String srv: services) {
+			//  System.out.println(":" +srv);
+			//}
 			Gson gson = new Gson();
 			JsonObject answer = new JsonObject();
 			JsonElement servicelist = gson.toJsonTree(services);
 			answer.add("services", servicelist);
 			String jsonStr = gson.toJson(answer);
-			System.out.println("Asnwer: "+jsonStr);
+			System.out.println(jsonStr);
 
-			return jsonStr; //Response.status(Status.OK).entity(jsonStr).type(MediaType.APPLICATION_JSON).build();
+			return jsonStr;
 		} else if(op.equals("create")){
 			//System.out.println("OP: CREATE");
 			String srvName = obj.get("srvName").getAsString();
 			String srvType = obj.get("srvType").getAsString();
-			System.out.println("Create SRV: "+srvName+" of type: "+srvType+" for: " + systemName);
+			//System.out.println("Create SRV: "+srvName+" of type: "+srvType+" for: " + systemName);
 
 			/* check if service already exists */
 			ArrayList<String> services = HistorianService.getServicesFromSystem(systemName);
@@ -224,7 +223,6 @@ public class DataManagerController {
 					JsonObject answer = new JsonObject();
 					answer.addProperty("createResult", "Already exists");
 					String jsonStr = gson.toJson(answer);
-					//return Response.status(Status.CONFLICT).entity(jsonStr).type(MediaType.APPLICATION_JSON).build();
 					throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, jsonStr);
 				}
 			}
@@ -234,8 +232,7 @@ public class DataManagerController {
 			if (ret==true){
 				return "{\"x\": 0}"; //Response.status(Status.CREATED).entity("{}").type(MediaType.APPLICATION_JSON).build();
 			} else {
-				//return Response.status(500).entity("{\"x\": \"Could not create service\"}").type(MediaType.APPLICATION_JSON).build();
-				throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "{\"x\": \"Could not create service\"}");
+				throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "{\"x\": -1, \"xs\":\"Could not create service\"}");
 			}
 
 		}
@@ -243,23 +240,12 @@ public class DataManagerController {
 	}
 
 	@GetMapping(value= "/historian/{system}/{service}")//CommonConstants.DM_HISTORIAN_URI)
-	@ResponseBody public String historianServiceGet(//RequestEntity<String> request /*
-			//@RequestHeader("Content-Type", required=true) String contentType,
+	@ResponseBody public String historianServiceGet(
 		@PathVariable(value="system", required=true) String systemName,
 		@PathVariable(value="service", required=true) String serviceName,
-		@RequestParam MultiValueMap<String, String> params/*
-		@RequestParam(value="count", required=false) Integer count,
-		@RequestParam(value="sig0", required=false) String sig0,
-		@RequestParam(value="sig1", required=false) String sig1,
-		@RequestParam(required=false) String sig2,
-		@RequestParam(required=false) String sig3,
-		@RequestParam(required=false) String sig4,
-		@RequestParam(required=false) String sig5,
-		@RequestParam(required=false) String sig6,
-		@RequestParam(required=false) String ts,
-		@RequestParam(required=false) String tsop*/
+		@RequestParam MultiValueMap<String, String> params
 		) {
-		System.out.println("DataManager:Get:Historian/"+systemName+"/"+serviceName);
+		//System.out.println("DataManager:Get:Historian/"+systemName+"/"+serviceName);
 
 		int statusCode = 0;
 		
@@ -267,7 +253,7 @@ public class DataManagerController {
 		int count = 1;
 		String ts=null, tsop=null;
 
-		logger.info("Historian GET for system '"+systemName+"', service '"+serviceName+"'"); 
+		//logger.info("Historian GET for system '"+systemName+"', service '"+serviceName+"'"); 
 
 		Vector<String> signals = new Vector<String>();
 		Iterator<String> it = params.keySet().iterator();
@@ -303,7 +289,7 @@ public class DataManagerController {
 				case "gt":  // greaten than
 				case "le":  // less than or equal
 				case "lt":  // less than
-				case "eg":  // equal
+				case "eq":  // equal
 					tsop = tsop;
 				default:
 					String jsonerr = "{\"x\": -1, \"xs\": \"Illegal timestamp comparison\"}";
@@ -330,10 +316,10 @@ public class DataManagerController {
 	@RequestBody Vector<SenML> sml
 	) {
 		System.out.println("DataManager:Put:Historian/"+systemName+"/"+serviceName);
-		Iterator entry = sml.iterator();
-		while (entry.hasNext()) { 
-            	  System.out.println(entry.next().toString()); 
-      		} 
+		//Iterator entry = sml.iterator();
+		//while (entry.hasNext()) { 
+            	  //System.out.println(entry.next().toString()); 
+      		//} 
 
 		boolean statusCode = HistorianService.createEndpoint(systemName, serviceName);
 		logger.info("Historian PUT for system '"+systemName+"', service '"+serviceName+"'"); 

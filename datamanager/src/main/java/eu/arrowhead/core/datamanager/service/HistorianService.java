@@ -301,7 +301,9 @@ public class HistorianService {
 		double t = 0;
 		System.out.println("m: " + m.toString());
 		if (m.getT() != null)
-		  t = m.getT();
+		  t = m.getT() + bt;
+		else
+		  t = bt;
 		String n = m.getN();
 		String unit = null;
 		if (m.getU() != null)
@@ -393,6 +395,8 @@ public class HistorianService {
 	      msg.setV(rs.getDouble("v"));
 
 	      System.out.println("\t: " + msg.toString());
+	      messages.add(msg);
+	      count--;
 
 	      /*for (SenML m : smlarr) {
 		  if (m.getBt() != null) {
@@ -427,24 +431,31 @@ public class HistorianService {
 	    stmt.close();
 
 	    //update bn fields (i.e. remove if the same as the first
-	    String startbn = ((SenML)messages.firstElement()).getBn();
+	    /*String startbn = ((SenML)messages.firstElement()).getBn();
 	    for (int i = 1; i< messages.size(); i++) {
 	      SenML m = (SenML)messages.get(i);
 	      System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
 	      if (startbn.equals(m.getBn()))
 		m.setBn(null);
-	    }
+	    }*/
+
+	    // if no data, was found, just return the header element
+	    if (messages.size() == 1)
+	      return messages;
 
 	    //recalculate a bt time and update all relative timestamps
-	    Double startbt = ((SenML)messages.firstElement()).getBt();
+	    double startbt = ((SenML)messages.get(1)).getT();
+	    ((SenML)messages.firstElement()).setBt(startbt);
+	    ((SenML)messages.firstElement()).setT(null);
+	    ((SenML)messages.get(1)).setT(null);
 	    for (SenML m : messages) {
 	      System.out.println("\t" + m.toString());
 	      if (m.getT() != null)
 		m.setT(m.getT()-startbt);
 	    }
 
-	    // update unit tags
-	    String startbu = ((SenML)messages.firstElement()).getBu();
+	    // update unit tags: XXX do it another way! loop and check if all messages have the same u
+	    /*String startbu = ((SenML)messages.firstElement()).getBu();
 	    if (startbu != null) {
 	      for (SenML m : messages) {
 		try {
@@ -454,10 +465,9 @@ public class HistorianService {
 		} catch(Exception e){
 		}
 	      }
-	    }
+	    }*/
 
 	    return messages;
-	    //}
 
 	} catch (SQLException e) {
 	  System.err.println(e.toString());
@@ -473,7 +483,7 @@ public class HistorianService {
 
 
 /**
- * @fn static Vector<SenML> fetchEndpoint(String name, int count)
+ * @fn static Vector<SenML> fetchEndpoint(String serviceName, long from, long to, int count)
  * @brief
  * @param name
  * @param count
@@ -512,38 +522,32 @@ public class HistorianService {
 	      rs.close();
 	      stmt.close();
 
-	      if (messages.size() > 0) {
+	      // if no data, was found, just return the header element
+	      if (messages.size() == 1)
+		return messages;
 
-		//update bn fields (i.e. remove if the same as the first
-		String startbn = ((SenML)messages.firstElement()).getBn();
-		for (int i = 1; i< messages.size(); i++) {
-		  SenML m = (SenML)messages.get(i);
-		  //System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
-		  if (startbn.equals(m.getBn()))
-		    m.setBn(null);
-		}
-
-		//recalculate a bt time and update all relative timestamps
-		Double startbt = ((SenML)messages.firstElement()).getBt();
-		for (SenML m : messages) {
-		  //System.out.println("\t" + m.toString());
-		  if (m.getT() != null)
-		    m.setT(m.getT()-startbt);
-		}
-
-		// update unit tags
-		String startbu = ((SenML)messages.firstElement()).getBu();
-		if (startbu != null) {
-		  for (SenML m : messages) {
-		    try {
-		      if (m.getU().equals(startbu)){
-			m.setU(null);
-		      }
-		    } catch(Exception e){}
-		  }
-		}
-
+	      //recalculate a bt time and update all relative timestamps
+	      double startbt = ((SenML)messages.get(2)).getT();
+	      ((SenML)messages.firstElement()).setBt(startbt);
+	      ((SenML)messages.firstElement()).setT(0.0);
+	      for (SenML m : messages) {
+		System.out.println("\t" + m.toString());
+		if (m.getT() != null)
+		  m.setT(m.getT()-startbt);
 	      }
+
+	      // update unit tags
+	      /*String startbu = ((SenML)messages.firstElement()).getBu(); // XXX
+	      if (startbu != null) {
+		for (SenML m : messages) {
+		  try {
+		    if (m.getU().equals(startbu)){
+		      m.setU(null);
+		    }
+		  } catch(Exception e){}
+		}
+
+	      }*/
 
 	      return messages;
 

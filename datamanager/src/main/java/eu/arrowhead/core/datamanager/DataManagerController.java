@@ -245,14 +245,12 @@ public class DataManagerController {
 		@PathVariable(value="service", required=true) String serviceName,
 		@RequestParam MultiValueMap<String, String> params
 		) {
-		//System.out.println("DataManager:Get:Historian/"+systemName+"/"+serviceName);
+		logger.info("DataManager:Get:Historian/"+systemName+"/"+serviceName);
 
 		int statusCode = 0;
 		
 		long from=-1, to=-1;
 		int count = 1;
-
-		//logger.info("Historian GET for system '"+systemName+"', service '"+serviceName+"'"); 
 
 		Vector<String> signals = new Vector<String>();
 		Iterator<String> it = params.keySet().iterator();

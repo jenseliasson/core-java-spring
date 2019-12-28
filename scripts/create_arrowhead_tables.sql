@@ -290,6 +290,21 @@ CREATE TABLE IF NOT EXISTS `dmhist_messages` (
   CONSTRAINT `service_id_constr` FOREIGN KEY (`sid`) REFERENCES `dmhist_services` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE IF NOT EXISTS `dmhist_entries` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `sid` bigint(20) NOT NULL,
+  `mid` bigint(20) NOT NULL,
+  `n` varchar(128) NOT NULL,
+  `t` bigint(20) UNSIGNED NOT NULL,
+  `u` varchar(64),
+  `v`  double,
+  `sv` BLOB,
+  `bv` BOOLEAN,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `service_id_fk` FOREIGN KEY(`sid`) REFERENCES `dmhist_services`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `message_id_fk` FOREIGN KEY(`mid`) REFERENCES `dmhist_messages`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 -- Choreographer
 
 CREATE TABLE IF NOT EXISTS `choreographer_action_plan` (

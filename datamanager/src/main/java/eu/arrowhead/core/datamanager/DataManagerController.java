@@ -249,9 +249,8 @@ public class DataManagerController {
 
 		int statusCode = 0;
 		
-		long timestamp;
+		long from=-1, to=-1;
 		int count = 1;
-		String ts=null, tsop=null;
 
 		//logger.info("Historian GET for system '"+systemName+"', service '"+serviceName+"'"); 
 
@@ -263,45 +262,23 @@ public class DataManagerController {
 			System.out.println("Key: " + par + " value: " + params.getFirst(par) + "("+("sig"+sigCnt)+")");
 			if (par.equals("count")) {
 				count = Integer.parseInt(params.getFirst(par));
-			} else if (par.equals("ts")) {
-				ts = params.getFirst(par);
-			} else if (par.equals("tsop")) {
-				tsop = params.getFirst(par);
 			} else if (par.equals("sig"+sigCnt)) {
 				signals.add(params.getFirst(par));
 				sigCnt++;
+			} else if (par.equals("from")) {
+				from = Long.parseLong(params.getFirst(par));
+			} else if (par.equals("to")) {
+				to = Long.parseLong(params.getFirst(par));
 			}
 		}
 		logger.info("getData requested with count: " + count);
 
 		Vector<SenML> ret = null;
 
-		// check is timestamp should be used
-		if (ts == null) {
-			timestamp = -1;
-		} else {
-			timestamp = Long.parseLong(ts);
-			//check timestampOperation, if null, assume greaterand equals ">="
-			if (tsop == null)
-			       tsop = "ge"; // greater than and equal
-			switch(tsop) {
-				case "ge":  // greater than and equal
-				case "gt":  // greaten than
-				case "le":  // less than or equal
-				case "lt":  // less than
-				case "eq":  // equal
-					tsop = tsop;
-					break;
-				default:
-					String jsonerr = "{\"x\": -1, \"xs\": \"Illegal timestamp comparison\"}";
-					return jsonerr;
-			}
-		}
-
 		if(signals.size() == 0) {
-			ret = HistorianService.fetchEndpoint(serviceName, timestamp, tsop, count);
+			ret = HistorianService.fetchEndpoint(serviceName, from, to, count);
 		} else {
-			ret = HistorianService.fetchEndpoint(serviceName, timestamp, tsop, count, signals);
+			ret = HistorianService.fetchEndpoint(serviceName, from, to, count, signals);
 		}
 
 		if (ret == null)

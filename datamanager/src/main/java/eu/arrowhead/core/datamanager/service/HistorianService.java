@@ -157,7 +157,7 @@ public class HistorianService {
 
 
 	/**
-	 * @fn 
+	 * @fn public static boolean addServiceForSystem(String systemName, String serviceName, String serviceType)
 	 *
 	 */
 	public static boolean addServiceForSystem(String systemName, String serviceName, String serviceType){
@@ -270,10 +270,10 @@ public class HistorianService {
 
 
 	/**
-	 * @fn static boolean updateEndpoint(String name, Vector<SenML> msg)
+	 * @fn static boolean updateEndpoint(String serviceName, Vector<SenML> msg)
 	 *
 	 */
-	public static boolean updateEndpoint(String name, Vector<SenML> msg) {
+	public static boolean updateEndpoint(String serviceName, Vector<SenML> msg) {
 	  boolean ret = false;
 
 	  double maxTs = maxTs(msg);
@@ -283,10 +283,10 @@ public class HistorianService {
 	  Connection conn = null;
 	  try {
 	    conn = getConnection();
-	    int id = serviceToID(name, conn);
-	    if (id != -1) {
+	    int sid = serviceToID(serviceName, conn);
+	    if (sid != -1) {
 	      Statement stmt = conn.createStatement();
-	      String sql = "INSERT INTO dmhist_messages(sid, bt, mint, maxt, msg, datastored) VALUES("+id+", "+msg.get(0).getBt()+","+minTs+", "+maxTs+", '"+msg.toString()+"',NOW());"; //how to escape "
+	      String sql = "INSERT INTO dmhist_messages(sid, bt, mint, maxt, msg, datastored) VALUES("+sid+", "+msg.get(0).getBt()+","+minTs+", "+maxTs+", '"+msg.toString()+"',NOW());"; //how to escape?
 	      System.out.println(sql);
 	      int mid = stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
 	      ResultSet rs = stmt.getGeneratedKeys();
@@ -296,13 +296,40 @@ public class HistorianService {
 	      stmt.close();
 
 	      // that was the entire message, now insert each individual JSON object in the message
+	      double bt = msg.get(0).getBt();
 	      for (SenML m : msg) {
-		sql = "INSERT INTO dmhist_objects(mid, t, obj) VALUES("+mid+", "+m.getT()+",´"+m.toString()+"');"; //how to escape "
-		System.out.println(sql);
+		double t = 0;
+		System.out.println("m: " + m.toString());
+		if (m.getT() != null)
+		  t = m.getT();
+		String n = m.getN();
+		String unit = null;
+		if (m.getU() != null)
+		  unit = "'"+m.getU()+"'";
+		String value = null;
+		if (m.getV() != null)
+		  value = "'"+m.getV()+"'";
+		String stringvalue = null;
+		if (m.getVs() != null)
+		  stringvalue = "'"+m.getVs()+"'";
+		String boolvalue = null;
+		if (m.getVb() != null)
+		  boolvalue = "'"+m.getVb()+"'";
+
+		if (n != null) {
+		  sql = "INSERT INTO dmhist_entries(sid, mid, n, t, u, v, sv, bv) VALUES("+sid+", "+mid+", '"+n+"', " + t +", "+unit+", "+value+", "+stringvalue+", "+boolvalue+");";
+		  System.out.println(sql);
+		  stmt = conn.createStatement();
+		  stmt.executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
+		  rs = stmt.getGeneratedKeys();
+		  rs.close();
+		  stmt.close();
+		}
 
 	      }
 
 	    } else {
+	      ret = false;
 	    }
 	  } catch (SQLException e) {
 	    //System.out.println(e.toString());
@@ -319,14 +346,14 @@ public class HistorianService {
 
 
 	/**
-	 * @fn static Vector<SenML> fetchEndpoint(String name, int count, Vector<String> signals)
+	 * @fn static Vector<SenML> fetchEndpoint(String serviceName, int count, Vector<String> signals)
 	 *
 	 */
-	public static Vector<SenML> fetchEndpoint(String name, long ts, String tsop, int count, Vector<String> signals) {
+	public static Vector<SenML> fetchEndpoint(String serviceName, long from, long to, int count, Vector<String> signals) {
 	  Connection conn = null;
 	  try {
 	    conn = getConnection();
-	    int id = serviceToID(name, conn);
+	    int id = serviceToID(serviceName, conn);
 	    //System.out.println("Got id of: " + id);
 	    String signalss = "";
 	    for (String sig: signals) {
@@ -335,37 +362,39 @@ public class HistorianService {
 	    signalss = signalss.substring(0, signalss.length()-1); //remove last ',' XXX. remove/detect escape characters 
 	    System.out.println("Signals: '" + signalss + "'");
 
-	    if (id != -1) {
-	      Statement stmt = conn.createStatement();
+	    if (from == -1)
+	      from = 0;                                       //1970-01-01
+	    if (to == -1)
+	      to = (long)(System.currentTimeMillis() / 1000.0); // now()
 
-	      String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
-	      if (ts != -1 && tsop != null) {
-		switch(tsop){
-		  case "ge":
-		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored >= "+ts+" ORDER BY datastored DESC;";
+	    if (id == -1)
+	      return null;
 
-		    break;
-		  case "eq":
-		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored="+ts+" ORDER BY datastored DESC;";
-		    break;
-		}
-	      }
-	      //String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
-	      System.out.println(sql);
-	      ResultSet rs = stmt.executeQuery(sql);
+	    Statement stmt = conn.createStatement();
 
-	      Vector<SenML> messages = new Vector<SenML>();
-	      SenML hdr = new SenML();
-	      hdr.setBn(name);
-	      messages.add(hdr);
-	      double bt = 0;
-	      String bu = null;
-	      while(rs.next() == true && count > 0) {
-		Gson gson = new Gson();
-		SenML[] smlarr = gson.fromJson(rs.getString("msg"), SenML[].class);
-		System.out.println("fetch() " + rs.getString("msg"));
+	    String sql = "SELECT * FROM dmhist_entries WHERE sid="+id+" and n IN ("+signalss+") AND t >= "+from+" and t <= "+to+" ORDER BY t DESC;";
+	    System.out.println(sql);
+	    ResultSet rs = stmt.executeQuery(sql);
 
-		for (SenML m : smlarr) {
+	    Vector<SenML> messages = new Vector<SenML>();
+	    SenML hdr = new SenML();
+	    hdr.setBn(serviceName);
+	    messages.add(hdr);
+	    double bt = 0;
+	    String bu = null;
+	    while(rs.next() == true && count > 0) {
+	      Gson gson = new Gson();
+	      //SenML[] smlarr = gson.fromJson(rs.getString("msg"), SenML[].class);
+	      //System.out.println("fetch() " + rs.getString("msg"));
+	      SenML msg = new SenML();
+	      msg.setT((double)rs.getLong("t"));
+	      msg.setN(rs.getString("n"));
+	      msg.setU(rs.getString("u"));
+	      msg.setV(rs.getDouble("v"));
+
+	      System.out.println("\t: " + msg.toString());
+
+	      /*for (SenML m : smlarr) {
 		  if (m.getBt() != null) {
 		    bt = m.getBt();
 
@@ -391,83 +420,74 @@ public class HistorianService {
 		    messages.add(m);
 		    count--;
 		  }
-		}
-	      }
+		}*/
+	    }
 
-	      rs.close();
-	      stmt.close();
+	    rs.close();
+	    stmt.close();
 
-	      //update bn fields (i.e. remove if the same as the first
-	      String startbn = ((SenML)messages.firstElement()).getBn();
-	      for (int i = 1; i< messages.size(); i++) {
-		SenML m = (SenML)messages.get(i);
-		System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
-		if (startbn.equals(m.getBn()))
-		  m.setBn(null);
-	      }
+	    //update bn fields (i.e. remove if the same as the first
+	    String startbn = ((SenML)messages.firstElement()).getBn();
+	    for (int i = 1; i< messages.size(); i++) {
+	      SenML m = (SenML)messages.get(i);
+	      System.out.println("startbn: "+ startbn+"\tm.Bn: "+m.getBn());
+	      if (startbn.equals(m.getBn()))
+		m.setBn(null);
+	    }
 
-	      //recalculate a bt time and update all relative timestamps
-	      Double startbt = ((SenML)messages.firstElement()).getBt();
+	    //recalculate a bt time and update all relative timestamps
+	    Double startbt = ((SenML)messages.firstElement()).getBt();
+	    for (SenML m : messages) {
+	      System.out.println("\t" + m.toString());
+	      if (m.getT() != null)
+		m.setT(m.getT()-startbt);
+	    }
+
+	    // update unit tags
+	    String startbu = ((SenML)messages.firstElement()).getBu();
+	    if (startbu != null) {
 	      for (SenML m : messages) {
-		  System.out.println("\t" + m.toString());
-		  if (m.getT() != null)
-		    m.setT(m.getT()-startbt);
-	      }
-
-	      // update unit tags
-	      String startbu = ((SenML)messages.firstElement()).getBu();
-	      if (startbu != null) {
-		for (SenML m : messages) {
-		  try {
-		    if (m.getU().equals(startbu)){
-		      m.setU(null);
-		    }
-		  } catch(Exception e){}
+		try {
+		  if (m.getU().equals(startbu)){
+		    m.setU(null);
+		  }
+		} catch(Exception e){
 		}
 	      }
+	    }
 
-	      return messages;
-	    } 
-	  } catch (SQLException e) {
-	    System.err.println(e.toString());
-	  } finally {
-	    try{
-	      closeConnection(conn);
-	    } catch(Exception e){}
-	  
-	  }
+	    return messages;
+	    //}
 
-	  return null;
+	} catch (SQLException e) {
+	  System.err.println(e.toString());
+	} finally {
+	  try {
+	    closeConnection(conn);
+	  } catch(Exception e){}
+
 	}
 
+	return null;
+}
 
-	/**
-	 * @fn static Vector<SenML> fetchEndpoint(String name, int count)
-	 * @brief
-	 * @param name
-	 * @param count
+
+/**
+ * @fn static Vector<SenML> fetchEndpoint(String name, int count)
+ * @brief
+ * @param name
+ * @param count
 	 * @return
 	 */
-	public static Vector<SenML> fetchEndpoint(String name, long ts, String tsop, int count) {
+	public static Vector<SenML> fetchEndpoint(String serviceName, long from, long to, int count) {
 	  Connection conn = null;
 	  try {
 	    conn = getConnection();
-	    int id = serviceToID(name, conn);
+	    int id = serviceToID(serviceName, conn);
 	    //System.out.println("Got id of: " + id);
 	    if (id != -1) {
 	      Statement stmt = conn.createStatement();
 	      String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
-	      if (ts != -1 && tsop != null) {
-		switch(tsop){
-		  case "ge":
-		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored >= "+ts+" ORDER BY datastored DESC;";
-		    break;
-		  case "eq":
-		    sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" AND datastored="+ts+" ORDER BY datastored DESC;";
-		    break;
-		}
-	      }
-	      //String sql = "SELECT * FROM dmhist_messages WHERE sid="+id+" ORDER BY datastored DESC;";
 	      System.out.println(sql);
 	      ResultSet rs = stmt.executeQuery(sql);
 

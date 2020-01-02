@@ -280,7 +280,7 @@ public class DataManagerController {
 		}
 
 		if (ret == null)
-			return "[]";
+			return "[\"bn\": \""+serviceName+"\"]";
 
 		return ret.toString();
 	}

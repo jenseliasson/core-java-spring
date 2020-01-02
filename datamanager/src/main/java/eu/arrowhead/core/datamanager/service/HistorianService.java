@@ -297,6 +297,7 @@ public class HistorianService {
 
 	      // that was the entire message, now insert each individual JSON object in the message
 	      double bt = msg.get(0).getBt();
+	      String bu = msg.get(0).getBu();
 	      for (SenML m : msg) {
 		double t = 0;
 		System.out.println("m: " + m.toString());
@@ -305,6 +306,10 @@ public class HistorianService {
 		    t = m.getT() + bt;
 		} else
 		  t = bt;
+
+		if (m.getU() == null)
+		  m.setU(bu);
+
 		String n = m.getN();
 		String unit = null;
 		if (m.getU() != null)
@@ -392,7 +397,7 @@ public class HistorianService {
 	    double bt = 0;
 	    String bu = null;
 	    while(rs.next() == true && count > 0) {
-	      Gson gson = new Gson();
+	      //Gson gson = new Gson();
 	      //SenML[] smlarr = gson.fromJson(rs.getString("msg"), SenML[].class);
 	      //System.out.println("fetch() " + rs.getString("msg"));
 	      SenML msg = new SenML();

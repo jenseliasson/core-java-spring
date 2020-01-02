@@ -274,7 +274,7 @@ public class DataManagerController {
 		Vector<SenML> ret = null;
 
 		if(signals.size() == 0) {
-			ret = HistorianService.fetchEndpoint(serviceName, from, to, count);
+			ret = HistorianService.fetchEndpoint(serviceName, from, to, count, null);
 		} else {
 			ret = HistorianService.fetchEndpoint(serviceName, from, to, count, signals);
 		}
@@ -304,22 +304,24 @@ public class DataManagerController {
 			throw new ResponseStatusException(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR, "Invalid SenML");
 		}
 
-		//SenML head = sml.firstElement();
-		//if(head.getBt() == null)
-		//	head.setBt((double)System.currentTimeMillis() / 1000.0);
+		SenML head = sml.firstElement();
+		if(head.getBt() == null)
+			head.setBt((double)System.currentTimeMillis() / 1000.0);
 
-		/*String bu = null;
+		String bu = head.getBu();
 		for(SenML s: sml) {
-			if (s.getBu() != null) {
+			/*if (s.getBu() != null) {
 				bu = s.getBu();
-			}
-			if (s.getU() != null) {
-				s.setU(bu);
-			}
+			}*/
+			//if (s.getU() == null && s.getBu() != null) {
+			//	s.setU(bu);
+			//}
 			//System.out.println("object" + s.toString());
-			//if(s.getT() == null && s.getBt() != null)
-			//	s.setT(0.0);
-		}*/ 
+			//if(s.getT() == null)
+			//	s.setT(s.getBt());
+			//else if (s.getT() < 268435456) //2**28
+			//	s.setT(s.getT() + s.getBt()); // if it was a relative ts, make it absolut
+		} 
 		statusCode = HistorianService.updateEndpoint(serviceName, sml);
 
 		String jsonret = "{\"x\": 0}";
